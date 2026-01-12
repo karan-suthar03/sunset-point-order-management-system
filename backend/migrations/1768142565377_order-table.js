@@ -28,6 +28,7 @@ export const up = (pgm) => {
     FOREIGN KEY (dish_id) REFERENCES dishes(dish_id)
 );`
     );
+    
 };
 
 /**
