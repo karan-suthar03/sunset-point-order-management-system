@@ -1,6 +1,14 @@
-import { Trash2, Package, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
+import { 
+  Trash2, 
+  CheckCircle, 
+  Clock, 
+  ShoppingBag,
+  Receipt,
+  Printer,
+  CreditCard,
+  AlertCircle
+} from 'lucide-react';
 import OrderItemsList from './OrderItemsList';
-import { useState } from 'react';
 
 function OrderCard({ 
   order,
@@ -12,102 +20,162 @@ function OrderCard({
   onTogglePayment,
   getOrderTotal
 }) {
-  let [isExpanded,setIsExpanded]=useState(false);
+  if (!order) return null;
+
+  const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0);
+  const isClosed = order.status === 'closed';
+  const totalAmount = getOrderTotal(order);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:border-blue-300">
-      {/* Horizontal Row Layout */}
-      <div className="flex items-stretch">
-        {/* Order Items - Left Section */}
-        <div className="flex-1 min-w-0">
-          {/* Collapsed View */}
-          {!isExpanded ? (
-            <div className="px-5 py-4 flex items-center gap-4 cursor-pointer" onClick={()=>{
-              setIsExpanded(!isExpanded);
-            }}>
-              <ChevronRight size={20} className="text-gray-400 shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-lg">Order {order.tag}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {order.items.length} {order.items.length === 1 ? 'item' : 'items'} • {order.createdAt}
-                </p>
-              </div>
+    <div className="h-full flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
+      
+      {/* --- Header Section --- */}
+      <div className="px-8 py-6 border-b border-gray-100 bg-white flex items-start justify-between shrink-0">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+              Order #{order.tag}
+            </h1>
+            {isClosed ? (
+              <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold uppercase tracking-wider border border-gray-200 flex items-center gap-1.5">
+                <CheckCircle size={12} /> Closed
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider border border-blue-100 flex items-center gap-1.5 animate-pulse">
+                <Clock size={12} /> Active
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-sm text-gray-400 font-medium">
+            <span className="flex items-center gap-1.5">
+              <Clock size={15} /> {order.createdAt}
+            </span>
+            <span className="w-1 h-1 rounded-full bg-gray-300" />
+            <span className="flex items-center gap-1.5">
+              <ShoppingBag size={15} /> {itemCount} items
+            </span>
+          </div>
+        </div>
+
+        {/* Top Actions (Print) */}
+        <button 
+          className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+          title="Print Receipt"
+        >
+          <Printer size={20} />
+        </button>
+      </div>
+
+      {/* --- Scrollable Content: Items List --- */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/30">
+        <div>
+          {order.items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400 opacity-60">
+              <Receipt size={48} className="mb-4 text-gray-300" />
+              <p className="text-lg font-medium">No items in this order</p>
             </div>
           ) : (
-            /* Expanded View */
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-4 cursor-pointer" onClick={()=>{
-                setIsExpanded(!isExpanded);
-              }}>
-                <ChevronDown size={20} className="text-gray-400" />
-                <h3 className="font-bold text-gray-900 text-lg">Order {order.tag}</h3>
-                <span className="text-xs text-gray-500">• {order.createdAt}</span>
+            <div className="bg-white shadow-sm overflow-hidden">
+               {/* Header for the table-like list */}
+              <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="col-span-6">Item Details</div>
+                <div className="col-span-3 text-center">Qty</div>
+                <div className="col-span-3 text-right">Price</div>
               </div>
-              {order.items.length === 0 ? (
-                <div className="flex items-center justify-center py-8 text-gray-400">
-                  <div className="text-center">
-                    <Package size={32} className="mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm font-medium">No items yet</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <OrderItemsList
-                    items={order.items}
-                    onRemove={onRemoveItem}
-                    onToggleServed={(itemId) => onToggleServed(order.id, itemId)}
-                    showCheckbox={true}
-                  />
-                </div>
-              )}
+              
+              <div className="p-2 px-4">
+                <OrderItemsList
+                  items={order.items}
+                  onRemove={isClosed ? null : onRemoveItem}
+                  onToggleServed={isClosed ? null : (itemId) => onToggleServed(order.id, itemId)}
+                  showCheckbox={true}
+                  readOnly={isClosed}
+                />
+              </div>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Order Details - Right Section */}
-        <div className="bg-linear-to-br from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3 min-w-[320px] border-l border-gray-200">
-          <div className="flex-1">
-            <div className="text-xs text-blue-100 mb-1">Total Amount</div>
-            <div className="text-2xl font-black text-white">${getOrderTotal(order)}</div>
-            {order.items.length > 0 && isExpanded && (
-              <div className="mt-2 pt-2 border-t border-white/20">
-                <p className="text-xs text-blue-100">
-                  {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
-                </p>
+      {/* --- Footer: Totals & Actions --- */}
+      <div className="bg-white border-t border-gray-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] z-10">
+        {/* Financial Summary */}
+        <div className="px-8 py-5 border-b border-gray-100">
+          <div className="flex justify-between items-end border-gray-200">
+            <div>
+              <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Amount</span>
+              <div className="flex items-center gap-2 mt-1">
+                 {/* Payment Status Badge in Footer */}
+                {order.paymentDone ? (
+                   <span className="text-xs font-bold text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded flex items-center gap-1">
+                     <CheckCircle size={10} /> Paid
+                   </span>
+                ) : (
+                  <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded flex items-center gap-1">
+                    <AlertCircle size={10} /> Pending
+                  </span>
+                )}
               </div>
-            )}
-            <div className="mt-3 pt-3 border-t border-white/20">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={order.paymentDone || false}
-                  onChange={() => onTogglePayment(order.id)}
-                  className="w-4 h-4 rounded border-2 border-white/30 text-green-500 focus:ring-2 focus:ring-green-400 focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-xs text-white font-medium group-hover:text-blue-50 transition-colors">
-                  Payment Done
-                </span>
-              </label>
             </div>
+            <span className="text-4xl font-black text-gray-900 tracking-tighter">
+              ${totalAmount}
+            </span>
           </div>
+        </div>
+
+        {/* Action Bar */}
+        <div className="p-6 bg-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between">
           
-          <div className="flex flex-col gap-2">
+          {/* Left: Payment Toggle */}
+          <label className={`
+            flex items-center gap-3 cursor-pointer px-5 py-3 rounded-xl border transition-all w-full lg:w-auto shadow-sm group
+            ${order.paymentDone 
+              ? 'bg-green-500 border-green-600 text-white' 
+              : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50'}
+          `}>
+            <input
+              type="checkbox"
+              checked={order.paymentDone || false}
+              onChange={() => onTogglePayment(order.id)}
+              disabled={isClosed}
+              className="sr-only"
+            />
+            <div className={`
+              w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors
+              ${order.paymentDone ? 'bg-white/20 border-white text-white' : 'bg-transparent border-gray-400 text-transparent'}
+            `}>
+              <CheckCircle size={14} fill={order.paymentDone ? "currentColor" : "none"} />
+            </div>
+            <span className="font-bold whitespace-nowrap select-none">
+              {order.paymentDone ? 'Payment Received' : 'Mark as Paid'}
+            </span>
+          </label>
+
+          {/* Right: Primary Actions */}
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            {!isClosed && (
+              <button
+                onClick={() => onCancelOrder(order.id)}
+                className="px-5 py-3 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-xl font-bold transition-all flex items-center justify-center gap-2 flex-1 lg:flex-none cursor-pointer"
+                title="Cancel Order"
+              >
+                <Trash2 size={18} />
+                <span className="lg:hidden xl:inline">Cancel</span>
+              </button>
+            )}
+            
             <button
               onClick={() => onCloseOrder(order.id)}
-              disabled={order.status === 'closed'}
-              className="px-3 py-2 bg-green-500 border-2 border-green-400 text-white text-xs rounded-lg hover:bg-green-600 transition-all inline-flex items-center justify-center gap-1.5 font-semibold shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:border-gray-500"
-              title={order.status === 'closed' ? 'Order already closed' : 'Close Order'}
+              disabled={isClosed}
+              className={`
+                px-8 py-3 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 flex-1 lg:flex-none transition-all transform active:scale-95
+                ${isClosed 
+                  ? 'bg-gray-400 cursor-not-allowed shadow-none' 
+                  : 'bg-gray-900 hover:bg-black hover:shadow-xl hover:-translate-y-0.5 cursor-pointer'}
+              `}
             >
-              <CheckCircle size={14} />
-              {order.status === 'closed' ? 'Closed' : 'Close'}
-            </button>
-            <button
-              onClick={() => onCancelOrder(order.id)}
-              className="px-3 py-2 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white text-xs rounded-lg hover:bg-white/20 transition-all inline-flex items-center justify-center gap-1.5 font-semibold shrink-0"
-              title="Cancel Order"
-            >
-              <Trash2 size={14} />
-              Cancel
+              <CheckCircle size={20} />
+              <span>{isClosed ? 'Order Completed' : 'Complete Order'}</span>
             </button>
           </div>
         </div>

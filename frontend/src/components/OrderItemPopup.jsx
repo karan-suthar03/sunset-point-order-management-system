@@ -35,7 +35,7 @@ function OrderItemPopup({
           <button
             onClick={handleDecrement}
             disabled={item.quantity === 1}
-            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             title="Decrease quantity"
           >
             <Minus size={14} />
@@ -45,7 +45,7 @@ function OrderItemPopup({
           </span>
           <button
             onClick={handleIncrement}
-            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"
+            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-all cursor-pointer"
             title="Increase quantity"
           >
             <Plus size={14} />
@@ -55,7 +55,7 @@ function OrderItemPopup({
         {/* Remove Button */}
         <button
           onClick={() => onRemove(item.id)}
-          className="p-1.5 text-red-600 hover:bg-red-100 rounded-md transition-all"
+          className="p-1.5 text-red-600 hover:bg-red-100 rounded-md transition-all cursor-pointer"
           title="Remove Item"
         >
           <X size={16} />

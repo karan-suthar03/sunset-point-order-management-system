@@ -1,5 +1,4 @@
-import { X } from 'lucide-react';
-import MenuSearch from './MenuSearch';
+import { X, Search, ShoppingBag, UtensilsCrossed, ChevronRight, Calculator, Loader2 } from 'lucide-react';
 import MenuItemsList from './MenuItemsList';
 import OrderItemsListPopup from './OrderItemsListPopup';
 import { useEffect, useState } from 'react';
@@ -17,20 +16,23 @@ function OrderPopup({
   let [filteredMenuItems, setFilteredMenuItems] = useState([]);
   let [order, setOrder] = useState({items: [], tag: ''});
   let [tagError, setTagError] = useState('');
+  let [isLoading, setIsLoading] = useState(true);
+  let [isSubmitting, setIsSubmitting] = useState(false); // New state for button loading
 
   // Fetch and filter menu items based on search query
   useEffect(() => {
     (async () => {
       try {
+        setIsLoading(true);
         let dishes = await getDishes();
         setFilteredMenuItems(dishes);
       } catch (error) {
         console.error("Error fetching dishes:", error);
-        let dishes = [];
-        setFilteredMenuItems(dishes);
+        setFilteredMenuItems([]);
+      } finally {
+        setIsLoading(false);
       }
     })();
-
   }, []);
 
   function onUpdateQuantity(itemId, newQuantity) {
@@ -46,36 +48,34 @@ function OrderPopup({
   }
 
   function onSelectMenuItem(item) {
-    // Check if item already exists in order
     const existingItem = order.items.find(i => i.id === item.id);
     let updatedItems;   
     if (existingItem) {
-      // If it exists, increase quantity
       updatedItems = order.items.map(i => 
         i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
       );
     } else {
-      // If not, add new item with quantity 1
       updatedItems = [...order.items, { ...item, quantity: 1 }];
     }   
     setOrder({ ...order, items: updatedItems });
   }
 
-
   function onOrderConfirm(){
-    // Validate tag is not empty
     if (!order.tag || order.tag.trim() === '') {
-      setTagError('Tag is required');
+      setTagError('Table/Tag name is required');
       return;
     }
     
     setTagError('');
+    setIsSubmitting(true); // Start loading
+
     (async ()=>{
       try {
         await createOrder(order);
         onConfirm();
       } catch (error) {
         console.error("Error saving order:", error);
+        setIsSubmitting(false); // Stop loading only if there's an error
       }
     })();
   }
@@ -83,91 +83,152 @@ function OrderPopup({
   function handleTagChange(e) {
     const value = e.target.value;
     setOrder({ ...order, tag: value });
-    // Clear error when user starts typing
     if (value.trim() !== '') {
       setTagError('');
     }
   }
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-275 h-162.5 flex flex-col overflow-hidden">
-        {/* Popup Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-linear-to-r from-blue-600 to-indigo-600">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm transition-opacity">
+      <div className="bg-white w-full max-w-7xl h-[90vh] rounded-2xl shadow-2xl flex overflow-hidden ring-1 ring-black/5 relative">
+        
+        {/* ================= LEFT SIDE: MENU & SEARCH ================= */}
+        <div className="flex-1 flex flex-col bg-gray-50/80">
+          
+          {/* Menu Header */}
+          <div className="px-6 py-5 border-b border-gray-200 bg-white flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 p-2 rounded-lg text-white">
+                <UtensilsCrossed size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Menu</h2>
+            </div>
+
+            {/* Integrated Search Bar */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search dishes..." 
+                value={searchQuery}
+                onChange={onSearchChange}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-transparent focus:bg-white border focus:border-blue-500 rounded-xl transition-all outline-none text-sm font-medium"
+              />
+            </div>
+          </div>
+
+          {/* Menu Grid */}
+          <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <MenuItemsList
+                groupedItems={filteredMenuItems}
+                onSelectItem={onSelectMenuItem}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* ================= RIGHT SIDE: ORDER TICKET ================= */}
+        <div className="w-100 bg-white border-l border-gray-200 flex flex-col shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.05)] z-10 relative">
+          
+          {/* Close Button (Absolute Top Right) */}
           <button
             onClick={onCancel}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all"
+            disabled={isSubmitting}
+            className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
           >
             <X size={20} />
           </button>
-        </div>
-        <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
-          <label htmlFor="order-tag" className="block text-sm font-bold text-gray-700 mb-2">
-            Order Tag <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="order-tag"
-            type="text"
-            value={order.tag}
-            onChange={handleTagChange}
-            placeholder="Enter order tag (e.g., Table 5, Room 101)"
-            className={`w-full px-4 py-2.5 border-2 ${
-              tagError ? 'border-red-500' : 'border-gray-300'
-            } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
-          />
-          {tagError && (
-            <p className="mt-1.5 text-sm text-red-600 font-medium">{tagError}</p>
-          )}
-        </div>
-        {/* Popup Content - Two Column Layout */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left Side - Order Items */}
-          <div className="w-1/2 border-r border-gray-200 flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Order Items</h3>
+
+          {/* Ticket Header */}
+          <div className="px-6 pt-8 pb-4 border-b border-gray-100">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <ShoppingBag size={14} />
+              Current Order
+            </h3>
+            
+            {/* Tag Input - Styled as a primary field */}
+            <div className="relative">
+              <input
+                id="order-tag"
+                type="text"
+                value={order.tag}
+                onChange={handleTagChange}
+                disabled={isSubmitting}
+                placeholder="Table Number / Customer Name"
+                className={`
+                  w-full px-4 py-3 bg-gray-50 border-2 rounded-xl text-lg font-bold text-gray-800 placeholder:font-normal placeholder:text-gray-400
+                  focus:outline-none focus:bg-white transition-all disabled:opacity-70 disabled:cursor-not-allowed
+                  ${tagError ? 'border-red-400 focus:border-red-500 bg-red-50/30' : 'border-gray-100 focus:border-blue-500'}
+                `}
+              />
+              {tagError && (
+                <div className="absolute -bottom-5 left-1 text-xs text-red-500 font-semibold animate-pulse">
+                  {tagError}
+                </div>
+              )}
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+          </div>
+
+          {/* Order Items Scroll Area */}
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            {order.items.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Calculator size={32} />
+                </div>
+                <p className="text-sm font-medium">No items selected</p>
+              </div>
+            ) : (
               <OrderItemsListPopup
                 items={order.items}
                 onUpdateQuantity={onUpdateQuantity}
                 onRemove={onRemoveItem}
               />
-            </div>
+            )}
           </div>
 
-          {/* Right Side - Menu Items */}
-          <div className="w-1/2 flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 space-y-2">
-              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Menu Items</h3>
-              <MenuSearch searchQuery={searchQuery} onSearchChange={onSearchChange} />
+          {/* Footer / Checkout */}
+          <div className="p-6 bg-white border-t border-gray-200 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.05)]">
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between items-center text-gray-500 text-sm">
+                <span>Items Count</span>
+                <span>{order.items.reduce((acc, i) => acc + i.quantity, 0)}</span>
+              </div>
+              <div className="flex justify-between items-end">
+                <span className="text-gray-900 font-bold text-lg">Total</span>
+                <span className="text-3xl font-black text-blue-600 tracking-tight">
+                  ${getOrderTotal(order)}
+                </span>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              <MenuItemsList
-                groupedItems={filteredMenuItems}
-                onSelectItem={onSelectMenuItem}
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Popup Footer */}
-        <div className="px-5 py-4 border-t border-gray-200 bg-linear-to-r from-gray-50 to-gray-100">
-          <div className="flex items-center justify-between mb-3 px-4 py-2.5 bg-white rounded-lg shadow-sm border border-gray-200">
-            <span className="text-base font-bold text-gray-700">Total:</span>
-            <span className="text-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">${getOrderTotal(order)}</span>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={onCancel}
-              className="flex-1 px-5 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-bold shadow-sm"
-            >
-              Cancel
-            </button>
             <button
               onClick={onOrderConfirm}
-              disabled={order.items.length === 0}
-              className="flex-1 px-5 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
+              disabled={order.items.length === 0 || isSubmitting}
+              className={`
+                w-full py-4 px-6 rounded-xl flex items-center justify-between group font-bold text-lg shadow-lg
+                transition-all duration-200
+                ${(order.items.length === 0 || isSubmitting)
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-200 hover:-translate-y-0.5 cursor-pointer'}
+              `}
             >
-              Confirm Order
+              {isSubmitting ? (
+                <div className="flex items-center justify-center w-full gap-2">
+                  <Loader2 className="animate-spin" size={24} />
+                  <span>Processing...</span>
+                </div>
+              ) : (
+                <>
+                  <span>Place Order</span>
+                  <ChevronRight className={`transition-transform duration-200 ${order.items.length > 0 ? 'group-hover:translate-x-1' : ''}`} />
+                </>
+              )}
             </button>
           </div>
         </div>

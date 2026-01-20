@@ -1,52 +1,76 @@
-import { X } from 'lucide-react';
+import { X, Check, Utensils } from 'lucide-react';
 
 function OrderItem({ 
   item, 
   onRemove, 
   onToggleServed = null,
-  showCheckbox = false 
+  showCheckbox = false,
+  readOnly = false
 }) {
-  console.log('Rendering OrderItem:', item);
+  const isServed = item.status === 'served';
+
   return (
-    <div
-      className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
-        showCheckbox && item.status === 'served'
-          ? 'bg-linear-to-r from-green-50 to-emerald-50 border-green-300'
-          : 'bg-linear-to-r from-blue-50 to-indigo-50 border-blue-100'
-      }`}
-    >
-      {showCheckbox && (
-        <input
-          type="checkbox"
-          checked={item.status === 'served'}
-          onChange={() => onToggleServed(item.id)}
-          className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer"
-        />
-      )}
-      <div className="flex-1 min-w-0">
-        <p className={`font-bold text-sm ${
-          showCheckbox && item.status === 'served' ? 'text-green-900 line-through' : 'text-gray-900'
-        }`}>
-          {item.name}
-        </p>
-        <p className="text-xs text-gray-600 mt-0.5">
-          ${item.price.toFixed(2)} × {item.quantity} = <span className="font-semibold text-blue-600">${(item.price * item.quantity).toFixed(2)}</span>
-        </p>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className="flex items-center border border-gray-300 rounded-md bg-white px-2 py-1">
-          <span className="text-xs text-gray-500 mr-1">Qty</span>
-          <span className="text-sm font-bold text-gray-900">
-            {Number(item.quantity)}
+    <div className="group relative grid grid-cols-12 gap-4 py-4 border-b border-gray-50 last:border-0 hover:bg-blue-50/50 transition-colors items-center px-4 -mx-2 rounded-lg">
+      
+      {/* --- COL 1-6: Item Details --- */}
+      <div className="col-span-6 flex items-start gap-3 overflow-hidden">
+        {/* Served Checkbox / Status Icon */}
+        {showCheckbox && !readOnly && (
+          <button
+            onClick={() => onToggleServed(item.id)}
+            className={`
+              shrink-0 mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-all cursor-pointer
+              ${isServed 
+                ? 'bg-green-500 border-green-500 text-white' 
+                : 'bg-white border-gray-300 text-transparent hover:border-green-400'}
+            `}
+          >
+            <Check size={12} strokeWidth={3} />
+          </button>
+        )}
+
+        <div className="flex flex-col min-w-0">
+          <span className={`
+            text-sm font-bold truncate transition-all cursor-pointer
+            ${isServed ? 'text-gray-400 line-through decoration-gray-300' : 'text-gray-800'}
+          `} onClick={() => onToggleServed(item.id)}>
+            {item.name}
+          </span>
+          <span className="text-[10px] font-medium text-gray-400">
+            @ ${Number(item.price).toFixed(2)} / unit
           </span>
         </div>
-        <button
-          onClick={() => onRemove(item.id)}
-          className="p-1.5 text-red-600 hover:bg-red-100 rounded-md transition-all"
-          title="Remove Item"
-        >
-          <X size={16} />
-        </button>
+      </div>
+
+      {/* --- COL 7-9: Quantity --- */}
+      <div className="col-span-3 flex items-center justify-center">
+        <span className={`
+          text-xs font-bold px-2.5 py-1 rounded-md
+          ${isServed ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-700'}
+        `}>
+          x{item.quantity}
+        </span>
+      </div>
+
+      {/* --- COL 10-12: Total Price & Actions --- */}
+      <div className="col-span-3 flex items-center justify-end gap-3">
+        <span className={`
+          font-bold text-sm
+          ${isServed ? 'text-gray-400' : 'text-gray-900'}
+        `}>
+          ${(item.price * item.quantity).toFixed(2)}
+        </span>
+
+        {/* Delete Button - Shows on Hover */}
+        {!readOnly && (
+          <button
+            onClick={() => onRemove(item.id)}
+            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all absolute right-2 lg:static cursor-pointer"
+            title="Remove Item"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
     </div>
   );
