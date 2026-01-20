@@ -11,8 +11,8 @@ function OrderItem({
     <div
       className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
         showCheckbox && item.status === 'served'
-          ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
-          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100'
+          ? 'bg-linear-to-r from-green-50 to-emerald-50 border-green-300'
+          : 'bg-linear-to-r from-blue-50 to-indigo-50 border-blue-100'
       }`}
     >
       {showCheckbox && (
@@ -33,7 +33,7 @@ function OrderItem({
           ${item.price.toFixed(2)} × {item.quantity} = <span className="font-semibold text-blue-600">${(item.price * item.quantity).toFixed(2)}</span>
         </p>
       </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <div className="flex items-center border border-gray-300 rounded-md bg-white px-2 py-1">
           <span className="text-xs text-gray-500 mr-1">Qty</span>
           <span className="text-sm font-bold text-gray-900">

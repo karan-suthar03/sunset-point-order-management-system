@@ -25,7 +25,7 @@ function OrderCard({
             <div className="px-5 py-4 flex items-center gap-4 cursor-pointer" onClick={()=>{
               setIsExpanded(!isExpanded);
             }}>
-              <ChevronRight size={20} className="text-gray-400 flex-shrink-0" />
+              <ChevronRight size={20} className="text-gray-400 shrink-0" />
               <div className="flex-1">
                 <h3 className="font-bold text-gray-900 text-lg">Order #{order.id}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -65,7 +65,7 @@ function OrderCard({
         </div>
 
         {/* Order Details - Right Section */}
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3 min-w-[320px] border-l border-gray-200">
+        <div className="bg-linear-to-br from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3 min-w-[320px] border-l border-gray-200">
           <div className="flex-1">
             <div className="text-xs text-blue-100 mb-1">Total Amount</div>
             <div className="text-2xl font-black text-white">${getOrderTotal(order)}</div>
@@ -95,7 +95,7 @@ function OrderCard({
             <button
               onClick={() => onCloseOrder(order.id)}
               disabled={order.status === 'closed'}
-              className="px-3 py-2 bg-green-500 border-2 border-green-400 text-white text-xs rounded-lg hover:bg-green-600 transition-all inline-flex items-center justify-center gap-1.5 font-semibold flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:border-gray-500"
+              className="px-3 py-2 bg-green-500 border-2 border-green-400 text-white text-xs rounded-lg hover:bg-green-600 transition-all inline-flex items-center justify-center gap-1.5 font-semibold shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:border-gray-500"
               title={order.status === 'closed' ? 'Order already closed' : 'Close Order'}
             >
               <CheckCircle size={14} />
@@ -103,7 +103,7 @@ function OrderCard({
             </button>
             <button
               onClick={() => onCancelOrder(order.id)}
-              className="px-3 py-2 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white text-xs rounded-lg hover:bg-white/20 transition-all inline-flex items-center justify-center gap-1.5 font-semibold flex-shrink-0"
+              className="px-3 py-2 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white text-xs rounded-lg hover:bg-white/20 transition-all inline-flex items-center justify-center gap-1.5 font-semibold shrink-0"
               title="Cancel Order"
             >
               <Trash2 size={14} />

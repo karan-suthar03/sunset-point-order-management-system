@@ -75,9 +75,9 @@ function OrderPopup({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-[1100px] h-[650px] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-275 h-162.5 flex flex-col overflow-hidden">
         {/* Popup Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-linear-to-r from-blue-600 to-indigo-600">
           {/* <div>
             <h2 className="text-xl font-bold text-white">New Order #{order.id}</h2>
             <p className="text-xs text-blue-100 mt-0.5">{order.createdAt}</p>
@@ -122,10 +122,10 @@ function OrderPopup({
         </div>
 
         {/* Popup Footer */}
-        <div className="px-5 py-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+        <div className="px-5 py-4 border-t border-gray-200 bg-linear-to-r from-gray-50 to-gray-100">
           <div className="flex items-center justify-between mb-3 px-4 py-2.5 bg-white rounded-lg shadow-sm border border-gray-200">
             <span className="text-base font-bold text-gray-700">Total:</span>
-            <span className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">${getOrderTotal(order)}</span>
+            <span className="text-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">${getOrderTotal(order)}</span>
           </div>
           <div className="flex gap-3">
             <button
@@ -137,7 +137,7 @@ function OrderPopup({
             <button
               onClick={onOrderConfirm}
               disabled={order.items.length === 0}
-              className="flex-1 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
+              className="flex-1 px-5 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
             >
               Confirm Order
             </button>

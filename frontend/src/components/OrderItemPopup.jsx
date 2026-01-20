@@ -16,7 +16,7 @@ function OrderItemPopup({
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 transition-all hover:border-blue-200">
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 transition-all hover:border-blue-200">
       <div className="flex-1 min-w-0">
         <p className="font-bold text-sm text-gray-900">
           {item.name}
@@ -29,7 +29,7 @@ function OrderItemPopup({
         </p>
       </div>
       
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         {/* Quantity Controls */}
         <div className="flex items-center border border-gray-300 rounded-md bg-white px-1 py-0.5">
           <button

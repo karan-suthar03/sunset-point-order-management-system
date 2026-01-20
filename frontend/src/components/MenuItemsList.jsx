@@ -3,7 +3,7 @@ function MenuItemsList({ groupedItems, onSelectItem }) {
     <div className="overflow-y-auto border border-gray-200 rounded-lg bg-white">
       {Object.entries(groupedItems).map(([category, items]) => (
         <div key={category}>
-          <div className="text-xs font-bold text-gray-600 px-4 py-2 bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 border-b border-gray-200">
+          <div className="text-xs font-bold text-gray-600 px-4 py-2 bg-linear-to-r from-gray-50 to-gray-100 sticky top-0 border-b border-gray-200">
             {category}
           </div>
           {items.map(item => (
