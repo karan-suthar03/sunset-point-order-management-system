@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Header from '../components/Header';
 import OrderPopup from '../components/OrderPopup';
 import OrderCard from '../components/OrderCard';
-import { getOrders } from '../API/orders.js';
+import { getOrders,closeOrder } from '../API/orders.js';
 import { 
   Plus, 
   Search, 
@@ -35,10 +35,6 @@ function OrdersPage() {
   const fetchOrders = async () => {
     const fetchedOrders = await getOrders();
     setOrders(fetchedOrders);
-    // Auto-select the first order if none selected
-    if (fetchedOrders.length > 0 && !selectedOrderId) {
-      // Optional: setSelectedOrderId(fetchedOrders[0].id);
-    }
   };
 
   // --- Computed Stats & Helpers ---
@@ -47,8 +43,8 @@ function OrdersPage() {
   };
 
   const stats = useMemo(() => {
-    const active = orders.filter(o => o.status !== 'closed').length;
-    const closed = orders.filter(o => o.status === 'closed').length;
+    const active = orders.filter(o => o.status !== 'CLOSED').length;
+    const closed = orders.filter(o => o.status === 'CLOSED').length;
     const revenue = orders
       .filter(o => o.paymentDone)
       .reduce((sum, order) => {
@@ -63,16 +59,16 @@ function OrdersPage() {
                           order.id.toString().includes(searchQuery);
     
     if (filterStatus === 'all') return matchesSearch;
-    if (filterStatus === 'active') return matchesSearch && order.status !== 'closed';
-    if (filterStatus === 'closed') return matchesSearch && order.status === 'closed';
+    if (filterStatus === 'active') return matchesSearch && order.status !== 'CLOSED';
+    if (filterStatus === 'closed') return matchesSearch && order.status === 'CLOSED';
     return matchesSearch;
   });
 
   const visibleOrders = useMemo(() => {
     return filteredOrders.sort((a, b) => {
       // Sort by status (active first) then by ID (newest first)
-      if (a.status === 'closed' && b.status !== 'closed') return 1;
-      if (b.status === 'closed' && a.status !== 'closed') return -1;
+      if (a.status === 'CLOSED' && b.status !== 'CLOSED') return 1;
+      if (b.status === 'CLOSED' && a.status !== 'CLOSED') return -1;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
   }, [filteredOrders]);
@@ -126,11 +122,16 @@ function OrdersPage() {
       setOrders(prev => prev.filter(o => o.id !== orderId));
       if (selectedOrderId === orderId) setSelectedOrderId(null);
     } else if (type === 'close') {
-      setOrders(prev => prev.map(o => 
-        o.id === orderId ? { ...o, status: 'closed', closedAt: new Date().toLocaleTimeString() } : o
-      ));
+      (async () =>{
+        try{  
+          await closeOrder(orderId);
+          fetchOrders();
+          setConfirmDialog({ show: false, type: null, orderId: null });
+        } catch(err){
+          console.error("Error closing order:", err);
+        }
+      })()
     }
-    setConfirmDialog({ show: false, type: null, orderId: null });
   };
 
   return (
@@ -252,23 +253,23 @@ function OrdersPage() {
                     className={`
                       group relative p-4 rounded-xl border cursor-pointer transition-all duration-200
                       ${isSelected 
-                        ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-200' 
+                        ? order.status === 'CLOSED' ? 'bg-[#F3F4F6] border-green-700 shadow-lg' : 'bg-blue-600 border-blue-600 shadow-md shadow-blue-200' 
                         : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'}
                     `}
                   >
                     {/* Top Row: ID and Time */}
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                        <span className={`text-sm font-bold ${isSelected && order.status !== 'CLOSED' ? 'text-white' : 'text-gray-900'}`}>
                           #{order.tag}
                         </span>
-                        {order.status === 'closed' && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                        {order.status === 'CLOSED' && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${isSelected && order.status !== 'CLOSED' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
                             Closed
                           </span>
                         )}
                       </div>
-                      <span className={`text-xs ${isSelected ? 'text-blue-100' : 'text-gray-400'} flex items-center gap-1`}>
+                      <span className={`text-xs ${isSelected && order.status !== 'CLOSED' ? 'text-blue-100' : 'text-gray-400'} flex items-center gap-1`}>
                          {order.createdAt}
                       </span>
                     </div>
@@ -276,15 +277,15 @@ function OrdersPage() {
                     {/* Bottom Row: Details */}
                     <div className="flex justify-between items-end">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`text-xs ${isSelected ? 'text-blue-100' : 'text-gray-500'}`}>
+                        <span className={`text-xs ${isSelected && order.status !== 'CLOSED' ? 'text-blue-100' : 'text-gray-500'}`}>
                           {itemCount} items
                         </span>
                         
                         {/* PENDING ITEMS BADGE - ONLY SHOW IF NOT CLOSED */}
-                        {order.status !== 'closed' && pendingItems > 0 && (
+                        {order.status !== 'CLOSED' && pendingItems > 0 && (
                           <div className={`
                             flex items-center gap-1 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded animate-pulse
-                            ${isSelected ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-600 border border-orange-100'}
+                            ${isSelected && order.status !== 'CLOSED' ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-600 border border-orange-100'}
                           `}>
                             <Utensils size={10} />
                             {pendingItems} Left
@@ -292,21 +293,21 @@ function OrdersPage() {
                         )}
                         
                         {/* ALL SERVED BADGE - OPTIONAL */}
-                        {order.status !== 'closed' && isFullyServed && (
-                           <span className={`text-[10px] font-bold ${isSelected ? 'text-blue-200' : 'text-blue-400'}`}>
+                        {order.status !== 'CLOSED' && isFullyServed && (
+                           <span className={`text-[10px] font-bold ${isSelected && order.status !== 'CLOSED' ? 'text-blue-200' : 'text-blue-400'}`}>
                              All Served
                            </span>
                         )}
 
                         {/* Payment Icon Indicator */}
                         {order.paymentDone && (
-                          <div className={`flex items-center gap-1 text-[10px] font-bold uppercase ${isSelected ? 'text-green-300' : 'text-green-600 bg-green-50 px-1.5 py-0.5 rounded'}`}>
+                          <div className={`flex items-center gap-1 text-[10px] font-bold uppercase ${isSelected && order.status !== 'CLOSED' ? 'text-green-300' : 'text-green-600 bg-green-50 px-1.5 py-0.5 rounded'}`}>
                             <CreditCard size={10} />
                             Paid
                           </div>
                         )}
                       </div>
-                      <span className={`text-lg font-black ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                      <span className={`text-lg font-black ${isSelected && order.status !== 'CLOSED' ? 'text-white' : 'text-gray-900'}`}>
                         ₹{total}
                       </span>
                     </div>

@@ -157,5 +157,20 @@ async function postOrder(req, res) {
     }
 }
 
+async function closeOrder(req,res) {
+  let orderId = req.query.id;
+  try{
+    let query = `UPDATE orders SET order_status='CLOSED', is_payment_done=true WHERE order_id=$1 RETURNING *`;
+    let result = await pool.query(query, [orderId]);
+    if(result.rowCount === 0){
+      return res.status(404).json({error: "Order not found"});
+    }
+    res.status(200).json({message: "Order closed successfully", order: result.rows[0]});
+  } catch(err){
+    console.error("Error closing order:", err);
+    res.status(500).json({error: "Failed to close order"});
+  }
+}
 
-export { getOrders, postOrder };
+
+export { getOrders, postOrder, closeOrder };

@@ -22,7 +22,7 @@ function OrderCard({
   if (!order) return null;
 
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0);
-  const isClosed = order.status === 'closed';
+  const isClosed = order.status === 'CLOSED';
   const totalAmount = getOrderTotal(order);
 
   return (

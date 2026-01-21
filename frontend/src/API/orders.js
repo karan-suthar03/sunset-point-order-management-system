@@ -11,4 +11,9 @@ async function createOrder(order) {
     return response.data;
 }
 
-export { getOrders, createOrder };
+async function closeOrder(orderId) {
+    const response = await apiClient.put(`/orders/close?id=${orderId}`);
+    return response.data;
+}
+
+export { getOrders, createOrder, closeOrder };
