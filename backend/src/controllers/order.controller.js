@@ -14,11 +14,11 @@ function getOrders(req, res) {
       oi.order_item_id,
       oi.quantity,
       oi.item_status,
+      oi.price_snapshot AS price,
+      oi.dish_name_snapshot AS dish_name,
 
       d.dish_id,
-      d.dish_name,
-      d.category,
-      d.price
+      d.category
     FROM orders o
     LEFT JOIN order_items oi
       ON o.order_id = oi.order_id
@@ -67,25 +67,95 @@ function getOrders(req, res) {
 }
 
 
-function postOrder(req, res) {
-    let { items,tag } = req.body;
+async function postOrder(req, res) {
+    const { items, tag } = req.body;
+
     if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).send({ error: "Invalid items in request body" });
+        return res.status(400).json({ error: "Invalid items in request body" });
     }
-    let query = `INSERT INTO orders (is_payment_done, order_status, order_tag) VALUES ($1, $2, $3) RETURNING order_id`;
-    pool.query(query, [false, 'OPEN', tag]).then(async result => {
-        let orderId = result.rows[0].order_id;
-        console.log("Created order with ID:", orderId);
-        let queryItems = `INSERT INTO order_items (order_id, dish_id, quantity) VALUES ($1, $2, $3)`;
-        for (let item of items) {
-            let { id: dishId, quantity } = item;
-            await pool.query(queryItems, [orderId, dishId, quantity]);
+
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const orderResult = await client.query(
+            `INSERT INTO orders (is_payment_done, order_status, order_tag)
+             VALUES ($1, $2, $3)
+             RETURNING order_id`,
+            [false, "OPEN", tag]
+        );
+
+        const orderId = orderResult.rows[0].order_id;
+
+        const dishIds = items.map(i => i.id);
+
+        const dishesResult = await client.query(
+            `SELECT dish_id, dish_name, price
+             FROM dishes
+             WHERE dish_id = ANY($1::int[])`,
+            [dishIds]
+        );
+
+        if (dishesResult.rows.length !== dishIds.length) {
+            throw new Error("One or more dishes not found");
         }
-        res.status(201).send({ orderId });
-    }).catch(err => {
-        console.error("Error creating order:", err);
-        res.status(500).send({ error: "Failed to create order" });
-    });
+
+        const dishMap = new Map();
+        dishesResult.rows.forEach(d =>
+            dishMap.set(d.dish_id, d)
+        );
+        const values = [];
+        const placeholders = [];
+
+        items.forEach((item, index) => {
+            const dish = dishMap.get(item.id);
+
+            if (!dish) {
+                throw new Error(`Dish with id ${item.id} not found`);
+            }
+
+            const base = index * 5;
+            placeholders.push(
+                `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`
+            );
+
+            values.push(
+                orderId,
+                item.id,
+                item.quantity,
+                dish.dish_name,
+                dish.price
+            );
+        });
+
+        await client.query(
+            `INSERT INTO order_items
+             (order_id, dish_id, quantity, dish_name_snapshot, price_snapshot)
+             VALUES ${placeholders.join(", ")}`,
+            values
+        );
+
+        await client.query("COMMIT");
+
+        res.status(201).json({
+            message: "Order created successfully",
+            orderId
+        });
+
+    } catch (err) {
+        await client.query("ROLLBACK");
+        console.error("Transaction failed:", err.message);
+
+        res.status(500).json({
+            error: "Failed to create order",
+            details: err.message
+        });
+
+    } finally {
+        client.release();
+    }
 }
+
 
 export { getOrders, postOrder };
