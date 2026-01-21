@@ -1,15 +1,16 @@
-import { 
-  Trash2, 
-  CheckCircle, 
-  Clock, 
+import {
+  Trash2,
+  CheckCircle,
+  Clock,
   ShoppingBag,
   ReceiptIndianRupeeIcon as Receipt,
   Printer,
-  AlertCircle
-} from 'lucide-react';
-import OrderItemsList from './OrderItemsList';
+  AlertCircle,
+} from "lucide-react";
+import OrderItemsList from "./OrderItemsList";
+import dayjs from "dayjs";
 
-function OrderCard({ 
+function OrderCard({
   order,
   onUpdateQuantity,
   onRemoveItem,
@@ -17,17 +18,16 @@ function OrderCard({
   onCancelOrder,
   onCloseOrder,
   onTogglePayment,
-  getOrderTotal
+  getOrderTotal,
 }) {
   if (!order) return null;
 
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0);
-  const isClosed = order.status === 'CLOSED';
+  const isClosed = order.status === "CLOSED";
   const totalAmount = getOrderTotal(order);
 
   return (
     <div className="h-full flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
-      
       {/* --- Header Section --- */}
       <div className="px-8 py-6 border-b border-gray-100 bg-white flex items-start justify-between shrink-0">
         <div>
@@ -47,7 +47,8 @@ function OrderCard({
           </div>
           <div className="flex items-center gap-4 text-sm text-gray-400 font-medium">
             <span className="flex items-center gap-1.5">
-              <Clock size={15} /> {order.createdAt}
+              <Clock size={15} />{" "}
+              {dayjs(order.createdAt).format("DD MMM YYYY, hh:mm A")}
             </span>
             <span className="w-1 h-1 rounded-full bg-gray-300" />
             <span className="flex items-center gap-1.5">
@@ -57,7 +58,7 @@ function OrderCard({
         </div>
 
         {/* Top Actions (Print) */}
-        <button 
+        <button
           className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           title="Print Receipt"
         >
@@ -75,18 +76,22 @@ function OrderCard({
             </div>
           ) : (
             <div className="bg-white shadow-sm overflow-hidden">
-               {/* Header for the table-like list */}
+              {/* Header for the table-like list */}
               <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
                 <div className="col-span-6">Item Details</div>
                 <div className="col-span-3 text-center">Qty</div>
                 <div className="col-span-3 text-right">Price</div>
               </div>
-              
+
               <div className="p-2 px-4">
                 <OrderItemsList
                   items={order.items}
                   onRemove={isClosed ? null : onRemoveItem}
-                  onToggleServed={isClosed ? null : (itemId) => onToggleServed(order.id, itemId)}
+                  onToggleServed={
+                    isClosed
+                      ? null
+                      : (itemId) => onToggleServed(order.id, itemId)
+                  }
                   showCheckbox={true}
                   readOnly={isClosed}
                 />
@@ -102,13 +107,15 @@ function OrderCard({
         <div className="px-8 py-5 border-b border-gray-100">
           <div className="flex justify-between items-end border-gray-200">
             <div>
-              <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Amount</span>
+              <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                Total Amount
+              </span>
               <div className="flex items-center gap-2 mt-1">
-                 {/* Payment Status Badge in Footer */}
+                {/* Payment Status Badge in Footer */}
                 {order.paymentDone ? (
-                   <span className="text-xs font-bold text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded flex items-center gap-1">
-                     <CheckCircle size={10} /> Paid
-                   </span>
+                  <span className="text-xs font-bold text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded flex items-center gap-1">
+                    <CheckCircle size={10} /> Paid
+                  </span>
                 ) : (
                   <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded flex items-center gap-1">
                     <AlertCircle size={10} /> Pending
@@ -124,14 +131,17 @@ function OrderCard({
 
         {/* Action Bar */}
         <div className="p-6 bg-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between">
-          
           {/* Left: Payment Toggle */}
-          <label className={`
+          <label
+            className={`
             flex items-center gap-3 cursor-pointer px-5 py-3 rounded-xl border transition-all w-full lg:w-auto shadow-sm group
-            ${order.paymentDone 
-              ? 'bg-green-500 border-green-600 text-white' 
-              : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50'}
-          `}>
+            ${
+              order.paymentDone
+                ? "bg-green-500 border-green-600 text-white"
+                : "bg-white border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50"
+            }
+          `}
+          >
             <input
               type="checkbox"
               checked={order.paymentDone || false}
@@ -139,14 +149,19 @@ function OrderCard({
               disabled={isClosed}
               className="sr-only"
             />
-            <div className={`
+            <div
+              className={`
               w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors
-              ${order.paymentDone ? 'bg-white/20 border-white text-white' : 'bg-transparent border-gray-400 text-transparent'}
-            `}>
-              <CheckCircle size={14} fill={order.paymentDone ? "currentColor" : "none"} />
+              ${order.paymentDone ? "bg-white/20 border-white text-white" : "bg-transparent border-gray-400 text-transparent"}
+            `}
+            >
+              <CheckCircle
+                size={14}
+                fill={order.paymentDone ? "currentColor" : "none"}
+              />
             </div>
             <span className="font-bold whitespace-nowrap select-none">
-              {order.paymentDone ? 'Payment Received' : 'Mark as Paid'}
+              {order.paymentDone ? "Payment Received" : "Mark as Paid"}
             </span>
           </label>
 
@@ -162,19 +177,21 @@ function OrderCard({
                 <span className="lg:hidden xl:inline">Cancel</span>
               </button>
             )}
-            
+
             <button
               onClick={() => onCloseOrder(order.id)}
               disabled={isClosed}
               className={`
                 px-8 py-3 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 flex-1 lg:flex-none transition-all transform active:scale-95
-                ${isClosed 
-                  ? 'bg-gray-400 cursor-not-allowed shadow-none' 
-                  : 'bg-gray-900 hover:bg-black hover:shadow-xl hover:-translate-y-0.5 cursor-pointer'}
+                ${
+                  isClosed
+                    ? "bg-gray-400 cursor-not-allowed shadow-none"
+                    : "bg-gray-900 hover:bg-black hover:shadow-xl hover:-translate-y-0.5 cursor-pointer"
+                }
               `}
             >
               <CheckCircle size={20} />
-              <span>{isClosed ? 'Order Completed' : 'Complete Order'}</span>
+              <span>{isClosed ? "Order Completed" : "Complete Order"}</span>
             </button>
           </div>
         </div>
