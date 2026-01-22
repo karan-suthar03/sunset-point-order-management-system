@@ -132,4 +132,14 @@ async function toggleItemServedStatus(orderId, itemId) {
     return result.rows[0];
 }
 
-export default { getDishes, getOrders , createOrder, closeOrder, toggleItemServedStatus };
+async function removeItemFromOrder(id) {
+    const query = `DELETE FROM order_items WHERE order_item_id=$1`;
+    try {
+        await pool.query(query, [id]);
+    } catch (error) {
+        console.error("Error removing item from order:", error);
+        throw error;
+    }
+}
+
+export default { getDishes, getOrders , createOrder, closeOrder, toggleItemServedStatus, removeItemFromOrder };

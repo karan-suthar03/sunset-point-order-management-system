@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import Header from "../components/Header";
 import OrderPopup from "../components/OrderPopup";
 import OrderCard from "../components/OrderCard";
-import { getOrders, closeOrder, toggleServedStatus } from "../API/orders.js";
+import { getOrders, closeOrder, toggleServedStatus, deleteItemFromOrder } from "../API/orders.js";
 import {
   Plus,
   Search,
@@ -103,12 +103,19 @@ function OrdersPage() {
   };
 
   const handleRemoveItem = (itemId) => {
-    setOrders((prev) =>
-      prev.map((order) => ({
-        ...order,
-        items: order.items.filter((item) => item.id !== itemId),
-      })),
-    );
+    (async () => {
+      try {
+        await deleteItemFromOrder(itemId);
+        setOrders((prev) =>
+          prev.map((order) => ({
+            ...order,
+            items: order.items.filter((item) => item.id !== itemId),
+          })),
+        );
+      } catch (error) {
+        console.log(error)
+      }
+    })()
   };
 
   const handleToggleServed = (orderId, itemId) => {

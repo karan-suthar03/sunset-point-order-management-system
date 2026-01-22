@@ -21,4 +21,9 @@ async function toggleServedStatus(orderId, itemId) {
     return response.data;
 }
 
-export { getOrders, createOrder, closeOrder, toggleServedStatus };
+async function deleteItemFromOrder(itemId) {
+    const response = await apiClient.delete(`/orders/item?id=${itemId}`);
+    return response.data;
+}
+
+export { getOrders, createOrder, closeOrder, toggleServedStatus, deleteItemFromOrder };

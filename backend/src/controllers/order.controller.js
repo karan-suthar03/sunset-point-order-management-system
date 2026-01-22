@@ -86,4 +86,15 @@ async function orderServed(req,res){
   }
 }
 
-export { getOrdersController as getOrders, postOrder, closeOrder, orderServed };
+async function removeItemFromOrder(req,res) {
+  let itemId = req.query.id;
+  try {
+    await databaseService.removeItemFromOrder(itemId);
+    res.status(200).json({ message: "Item removed from order successfully" });
+  } catch (error) {
+    console.log("Error removing item from order:", error);
+    res.status(500).json({ error: "Failed to remove item from order" });
+  }
+}
+
+export { getOrdersController as getOrders, postOrder, closeOrder, orderServed, removeItemFromOrder };
