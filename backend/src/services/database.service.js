@@ -398,6 +398,277 @@ LIMIT 5;
   }
 }
 
+async function getAnalyticsData(start, end) {
+  try {
+    /** ---------- SUMMARY QUERY ---------- */
+    const summaryQuery = `
+      SELECT
+          COALESCE(SUM(o.order_total), 0)          AS total_revenue,
+          COUNT(o.order_id)                        AS total_orders,
+          AVG(o.order_total)                       AS avg_order_value,
+          AVG(COALESCE(oi.item_count, 0))          AS avg_number_of_items_per_order
+      FROM orders o
+      LEFT JOIN (
+          SELECT
+              order_id,
+              SUM(quantity) AS item_count
+          FROM order_items
+          WHERE item_status != 'CANCELLED'
+          GROUP BY order_id
+      ) oi ON oi.order_id = o.order_id
+      WHERE
+          o.order_status = 'CLOSED'
+          AND o.is_payment_done = true
+          AND o.created_at >= $1
+          AND o.created_at <  $2;
+    `;
+
+    /** ---------- SALES TREND QUERY ---------- */
+    const trendQuery = `
+      SELECT
+          DATE(o.created_at)         AS date,
+          TO_CHAR(o.created_at, 'Dy') AS day,
+          SUM(o.order_total)         AS sales,
+          COUNT(o.order_id)          AS orders,
+          ROUND(AVG(o.order_total))  AS aov
+      FROM orders o
+      WHERE
+          o.order_status = 'CLOSED'
+          AND o.is_payment_done = true
+          AND o.created_at >= $1
+          AND o.created_at <  $2
+      GROUP BY DATE(o.created_at), TO_CHAR(o.created_at, 'Dy')
+      ORDER BY DATE(o.created_at);
+    `;
+
+    /** -----------HOURLY RUSH -----------  */
+
+    const hourlyRushQuery = `
+  WITH hourly_per_day AS (
+      SELECT
+          DATE(o.created_at)              AS day,
+          EXTRACT(HOUR FROM o.created_at) AS hour,
+          COUNT(o.order_id)               AS orders
+      FROM orders o
+      WHERE
+          o.order_status = 'CLOSED'
+          AND o.is_payment_done = true
+          AND o.created_at >= $1
+          AND o.created_at <  $2
+      GROUP BY DATE(o.created_at), EXTRACT(HOUR FROM o.created_at)
+  )
+  SELECT
+      hour,
+      ROUND(AVG(orders)) AS avg_orders
+  FROM hourly_per_day
+  GROUP BY hour
+  ORDER BY hour;
+`;
+
+
+const categoryPerformanceQuery = `SELECT
+    d.category                         AS name,
+    SUM(oi.quantity * oi.price_snapshot) AS sales,
+    SUM(oi.quantity)                   AS quantity
+FROM order_items oi
+JOIN orders o
+    ON o.order_id = oi.order_id
+JOIN dishes d
+    ON d.dish_id = oi.dish_id
+WHERE
+    o.order_status = 'CLOSED'
+    AND o.is_payment_done = true
+    AND oi.item_status != 'CANCELLED'
+    AND o.created_at >= $1
+    AND o.created_at <  $2
+GROUP BY d.category
+ORDER BY sales DESC LIMIT 4;
+`;
+
+
+const orderSizeQuery = `
+WITH order_item_counts AS (
+    SELECT
+        o.order_id,
+        SUM(oi.quantity) AS item_count
+    FROM orders o
+    JOIN order_items oi
+        ON oi.order_id = o.order_id
+    WHERE
+        o.order_status = 'CLOSED'
+        AND o.is_payment_done = true
+        AND oi.item_status != 'CANCELLED'
+        AND o.created_at >= $1
+        AND o.created_at <  $2
+    GROUP BY o.order_id
+),
+bucketed_orders AS (
+    SELECT
+        CASE
+            WHEN item_count = 1 THEN '1 Item'
+            WHEN item_count = 2 THEN '2 Items'
+            WHEN item_count BETWEEN 3 AND 4 THEN '3-4 Items'
+            ELSE '5+ Items'
+        END AS size
+    FROM order_item_counts
+)
+SELECT
+    size,
+    COUNT(*) AS count
+FROM bucketed_orders
+GROUP BY size
+ORDER BY
+    CASE size
+        WHEN '1 Item' THEN 1
+        WHEN '2 Items' THEN 2
+        WHEN '3-4 Items' THEN 3
+        ELSE 4
+    END;
+`;
+
+
+    const [summaryRes, trendRes, hourlyRushRes, categoryPerformanceRes, orderSizeRes] = await Promise.all([
+      pool.query(summaryQuery, [start, end]),
+      pool.query(trendQuery, [start, end]),
+      pool.query(hourlyRushQuery, [start, end]),
+      pool.query(categoryPerformanceQuery, [start, end]),
+      pool.query(orderSizeQuery, [start, end])
+    ]);
+
+    const summary = summaryRes.rows[0];
+    const totalOrders = Number(summary.total_orders || 0);
+
+    const msInDay = 24 * 60 * 60 * 1000;
+    const days = Math.max(
+      1,
+      Math.ceil((end.getTime() - start.getTime()) / msInDay)
+    );
+
+    return {
+      totalRevenue: Number(summary.total_revenue),
+      totalOrders,
+      avgOrdersPerDay: totalOrders / days,
+      avgOrderValue: Number(summary.avg_order_value || 0),
+      avgNumberOfItemsPerOrder: Number(
+        summary.avg_number_of_items_per_order || 0
+      ),
+
+      salesTrendData: trendRes.rows.map(row => ({
+        date: row.day.trim(),
+        sales: Number(row.sales),
+        orders: Number(row.orders),
+        aov: Number(row.aov)
+      })),
+      hourlyRushData: hourlyRushRes.rows.map(row => {
+        const hour = Number(row.hour);
+        const displayHour =
+          hour === 0 ? '12 AM' :
+          hour < 12 ? `${hour} AM` :
+          hour === 12 ? '12 PM' :
+          `${hour - 12} PM`;
+
+        return {
+          time: displayHour,
+          orders: Number(row.avg_orders)
+        };
+      }),
+      categoryPerformanceData: categoryPerformanceRes.rows.map(row => ({
+        name: row.name,
+        sales: Number(row.sales),
+        quantity: Number(row.quantity)
+      })),
+      orderSizeData: orderSizeRes.rows.map(row => ({
+        size: row.size,
+        count: Number(row.count)
+      }))
+    };
+
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function getDishPerformance(start, end, type, limit) {
+  const query = `
+    SELECT
+        d.dish_id                    AS id,
+        oi.dish_name_snapshot        AS name,
+        d.category                   AS category,
+        SUM(oi.quantity)             AS sales,
+        SUM(oi.quantity * oi.price_snapshot) AS revenue
+    FROM order_items oi
+    JOIN orders o
+        ON o.order_id = oi.order_id
+    JOIN dishes d
+        ON d.dish_id = oi.dish_id
+    WHERE
+        o.order_status = 'CLOSED'
+        AND o.is_payment_done = true
+        AND oi.item_status != 'CANCELLED'
+        AND o.created_at >= $1
+        AND o.created_at <  $2
+    GROUP BY
+        d.dish_id,
+        oi.dish_name_snapshot,
+        d.category
+    ORDER BY
+        CASE WHEN $3 = 'revenue'
+             THEN SUM(oi.quantity * oi.price_snapshot)
+        END DESC,
+        CASE WHEN $3 = 'quantity'
+             THEN SUM(oi.quantity)
+        END DESC
+    LIMIT $4;
+  `;
+
+  const result = await pool.query(query, [
+    start,
+    end,
+    type,
+    limit
+  ]);
+
+  return result.rows.map(row => ({
+    id: Number(row.id),
+    name: row.name,
+    category: row.category,
+    sales: Number(row.sales),
+    revenue: Number(row.revenue)
+  }));
+}
+
+async function getCategoryPerformance(start, end) {
+  try {
+      const query = `SELECT
+    d.category                         AS name,
+    SUM(oi.quantity * oi.price_snapshot) AS sales,
+    SUM(oi.quantity)                   AS quantity
+FROM order_items oi
+JOIN orders o
+    ON o.order_id = oi.order_id
+JOIN dishes d
+    ON d.dish_id = oi.dish_id
+WHERE
+    o.order_status = 'CLOSED'
+    AND o.is_payment_done = true
+    AND oi.item_status != 'CANCELLED'
+    AND o.created_at >= $1
+    AND o.created_at <  $2
+GROUP BY d.category
+ORDER BY sales DESC;
+`;
+  const result = await pool.query(query, [start, end]);
+  return result.rows.map(row => ({
+    name: row.name,
+    sales: Number(row.sales),
+    quantity: Number(row.quantity)
+  }));
+  } catch (error) {
+    throw error
+  }
+
+}
+
 export default {
   getDishes,
   getOrders,
@@ -411,4 +682,7 @@ export default {
   getCategorySalesData,
   getTopSellingItems,
   getHighValueItems,
+  getAnalyticsData,
+  getDishPerformance,
+  getCategoryPerformance
 };

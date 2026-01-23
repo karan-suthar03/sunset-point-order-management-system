@@ -7,6 +7,7 @@ import {
   Users,
   UtensilsCrossed,
   LogOut,
+  Package,
   ChefHat
 } from "lucide-react";
 
@@ -52,7 +53,6 @@ export default function Sidebar() {
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-4 mt-2">
           Overview
         </div>
-        <SidebarItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
         <SidebarItem to="/analytics" icon={TrendingUp} label="Analytics" />
 
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-4 mt-6">
@@ -60,7 +60,7 @@ export default function Sidebar() {
         </div>
         <SidebarItem to="/orders" icon={ShoppingBag} label="Orders History" />
         <SidebarItem to="/menu" icon={UtensilsCrossed} label="Menu Items" />
-        <SidebarItem to="/staff" icon={Users} label="Staff & Roles" />
+        <SidebarItem to="/inventory" icon={Package} label="Inventory" />
       </nav>
 
       <div className="p-4 border-t border-gray-100">

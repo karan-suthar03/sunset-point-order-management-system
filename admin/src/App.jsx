@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar.jsx';
-import Dashboard from './pages/Dashboard.jsx';
 import Analytics from './pages/Analytics.jsx';
 import Orders from './pages/Orders.jsx';
 import Menu from './pages/Menu.jsx';
@@ -13,8 +12,7 @@ function App() {
         <Sidebar />
         <main className="flex-1 lg:ml-64">
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/analytics" replace />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/menu" element={<Menu />} />
