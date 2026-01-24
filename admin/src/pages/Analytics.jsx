@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from "react";
-import Header from "../components/Header";
 import { getAnalytics, getDishPerformance } from "../API/analytics.js";
 
 // Import analytics components
@@ -119,8 +118,6 @@ export default function Analytics() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-10 font-sans text-slate-900">
-      <Header />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         
         {/* --- CONTROL BAR --- */}

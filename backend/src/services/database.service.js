@@ -669,6 +669,28 @@ ORDER BY sales DESC;
 
 }
 
+async function getDishById(dishId) {
+  const query = `SELECT * FROM dishes WHERE dish_id=$1`;
+  try {
+    const result = await pool.query(query, [dishId]);
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error fetching dish by ID:", error);
+    throw error;
+  }
+}
+
+async function getDishCategories() {
+  const query = `SELECT DISTINCT category FROM dishes`;
+  try {
+    const result = await pool.query(query);
+    return result.rows.map(row => row.category);
+  } catch (error) {
+    console.error("Error fetching dish categories:", error);
+    throw error;
+  }
+}
+
 export default {
   getDishes,
   getOrders,
@@ -684,5 +706,7 @@ export default {
   getHighValueItems,
   getAnalyticsData,
   getDishPerformance,
-  getCategoryPerformance
+  getCategoryPerformance,
+  getDishById,
+  getDishCategories
 };

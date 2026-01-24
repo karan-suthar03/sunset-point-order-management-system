@@ -26,4 +26,25 @@ async function getDishes(req, res) {
     }
 }
 
-export { getDishes };
+async function getDishById(req,res) {
+    try{
+        let dishId = req.params.id;
+        let dish = await dbService.getDishById(dishId);
+        return res.status(200).json(dish);
+    }catch(error){
+        return res.status(500).send({message: "Internal Server Error"})
+    }
+}
+
+async function getCategories(req,res) {
+    try{
+        console.log("Fetching dish categories...");
+        let categories = await dbService.getDishCategories();
+        console.log("Categories fetched:", categories);
+        return res.status(200).json(categories);
+    }catch(error){
+        return res.status(500).send({message: "Internal Server Error"})
+    }
+}
+
+export { getDishes, getDishById, getCategories };

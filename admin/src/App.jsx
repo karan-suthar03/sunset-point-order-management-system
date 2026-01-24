@@ -4,6 +4,7 @@ import Analytics from './pages/Analytics.jsx';
 import Orders from './pages/Orders.jsx';
 import Menu from './pages/Menu.jsx';
 import Staff from './pages/Staff.jsx';
+import MenuItemPage from './pages/MenuItemPage.jsx';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/menu" element={<Menu />} />
+            <Route path="/menu/item/:id" element={<MenuItemPage />} /> 
             <Route path="/staff" element={<Staff />} />
           </Routes>
         </main>
