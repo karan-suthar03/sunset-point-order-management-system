@@ -54,7 +54,7 @@ export default function AnalyticsControlBar({
         
         <button 
           onClick={onApply}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow transition-colors"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow transition-colors cursor-pointer"
         >
           Apply
         </button>
