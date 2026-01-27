@@ -312,7 +312,7 @@ export default function AddInventoryItemPage() {
                 <Package size={24} className="text-blue-600" />
                 Add New Inventory Item
               </h1>
-              <p className="text-xs text-slate-400">Create a new ingredient for your inventory</p>
+             
             </div>
           </div>
         </div>
@@ -436,7 +436,7 @@ export default function AddInventoryItemPage() {
                     <AlertCircle size={12} /> {errors.maxStock}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-slate-400">Maximum amount you can store</p>
+            
               </div>
 
               {/* Initial Stock */}
@@ -466,7 +466,7 @@ export default function AddInventoryItemPage() {
                     <AlertCircle size={12} /> {errors.initialStock}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-slate-400">Current stock on hand (optional)</p>
+           
               </div>
             </div>
 

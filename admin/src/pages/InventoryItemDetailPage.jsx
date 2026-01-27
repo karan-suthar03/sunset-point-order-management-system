@@ -329,8 +329,8 @@ export default function InventoryItemDetailPage() {
 
             <button 
               onClick={() => setIsEditing(!isEditing)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                isEditing ? 'bg-slate-900 text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+                isEditing ? 'bg-slate-900 text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 '
               }`}
             >
               {isEditing ? <X size={16} /> : <Settings size={16} />}
@@ -404,8 +404,8 @@ export default function InventoryItemDetailPage() {
                    />
                 </div>
                 <div className="md:col-span-2 flex justify-end gap-3 mt-2">
-                   <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2.5 rounded-lg text-slate-500 font-bold hover:bg-slate-100">Cancel</button>
-                   <button type="submit" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-md flex items-center gap-2">
+                   <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2.5 rounded-lg text-slate-500 font-bold hover:bg-slate-100 cursor-pointer">Cancel</button>
+                   <button type="submit" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-md flex items-center gap-2 cursor-pointer">
                      <Save size={18} /> Save Changes
                    </button>
                 </div>
