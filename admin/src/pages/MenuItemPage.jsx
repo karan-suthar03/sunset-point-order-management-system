@@ -474,7 +474,7 @@ export default function MenuItemPage() {
                             <td className="px-4 py-3 text-right">
                               <button
                                 onClick={() => handleRemoveIngredient(item.id)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Trash2 size={16} />
                               </button>
