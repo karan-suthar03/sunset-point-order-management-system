@@ -29,7 +29,22 @@ function OrderPopup({
       try {
         setIsLoading(true);
         let dishes = await getDishes();
-        setFilteredMenuItems(dishes);
+        console.log("Fetched dishes:", dishes);
+        filteredMenuItems = {};
+        Object.keys(dishes).forEach(category => {
+
+          if(category.toLowerCase().includes(searchQuery.toLowerCase()) ) {
+            filteredMenuItems[category] = dishes[category];
+            return;
+          }
+          filteredMenuItems[category] = dishes[category].filter(dish => 
+            dish.name.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+          if (filteredMenuItems[category].length === 0) {
+            delete filteredMenuItems[category];
+          }
+        })
+        setFilteredMenuItems(filteredMenuItems);
       } catch (error) {
         console.error("Error fetching dishes:", error);
         setFilteredMenuItems([]);
@@ -37,7 +52,7 @@ function OrderPopup({
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [searchQuery]);
 
   function onUpdateQuantity(itemId, newQuantity) {
     const updatedItems = order.items.map(i => 
@@ -163,7 +178,7 @@ function OrderPopup({
                 value={order.tag}
                 onChange={handleTagChange}
                 disabled={isSubmitting}
-                placeholder="Table Number / Customer Name"
+                placeholder="Customer Name"
                 className={`
                   w-full px-4 py-3 bg-gray-50 border-2 rounded-xl text-lg font-bold text-gray-800 placeholder:font-normal placeholder:text-gray-400
                   focus:outline-none focus:bg-white transition-all disabled:opacity-70 disabled:cursor-not-allowed
