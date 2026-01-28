@@ -16,7 +16,7 @@ export default function CategoryPerformanceWidget({ data, onViewAll }) {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-bold text-gray-800">Category Performance</h3>
-          <p className="text-sm text-gray-500">Revenue share breakdown</p>
+   
         </div>
         <button 
           onClick={onViewAll}
