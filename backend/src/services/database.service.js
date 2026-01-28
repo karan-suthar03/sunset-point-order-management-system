@@ -29,6 +29,8 @@ async function getOrders() {
       ON o.order_id = oi.order_id
     LEFT JOIN dishes d
       ON oi.dish_id = d.dish_id
+    WHERE o.created_at >= date_trunc('day', now()) + interval '4 hours'
+      AND o.created_at <  date_trunc('day', now()) + interval '1 day' + interval '4 hours'
     ORDER BY o.created_at, oi.order_item_id;
   `;
 
@@ -204,8 +206,8 @@ async function getTrendData(range) {
     query = `
       WITH buckets AS (
         SELECT generate_series(
-          date_trunc('day', CURRENT_DATE),
-          date_trunc('day', CURRENT_DATE) + interval '23 hours',
+          date_trunc('day', CURRENT_TIMESTAMP),
+          date_trunc('day', CURRENT_TIMESTAMP) + interval '23 hours',
           interval '1 hour'
         ) AS bucket
       ),
@@ -214,7 +216,35 @@ async function getTrendData(range) {
           date_trunc('hour', created_at) AS bucket,
           COUNT(*) AS orders
         FROM orders
-        WHERE created_at >= CURRENT_DATE
+        WHERE created_at >= date_trunc('day', CURRENT_TIMESTAMP)
+          AND created_at < date_trunc('day', CURRENT_TIMESTAMP) + interval '1 day'
+        GROUP BY 1
+      )
+      SELECT
+        b.bucket,
+        COALESCE(a.orders, 0) AS orders
+      FROM buckets b
+      LEFT JOIN aggregated a USING (bucket)
+      ORDER BY b.bucket;
+    `;
+    labelFormat = "hour";
+  }
+
+  else if (range === "week") {
+    query = `
+      WITH buckets AS (
+        SELECT generate_series(
+          CURRENT_DATE - interval '6 days',
+          CURRENT_DATE,
+          interval '1 day'
+        )::date AS bucket
+      ),
+      aggregated AS (
+        SELECT
+          created_at::date AS bucket,
+          COUNT(*) AS orders
+        FROM orders
+        WHERE created_at >= CURRENT_DATE - interval '6 days'
           AND created_at < CURRENT_DATE + interval '1 day'
         GROUP BY 1
       )
@@ -222,50 +252,24 @@ async function getTrendData(range) {
         b.bucket,
         COALESCE(a.orders, 0) AS orders
       FROM buckets b
-      LEFT JOIN aggregated a ON b.bucket = a.bucket
-      ORDER BY b.bucket;
-    `;
-    labelFormat = "hour";
-  } else if (range === "week") {
-    query = `
-      WITH buckets AS (
-        SELECT generate_series(
-          date_trunc('week', CURRENT_DATE),
-          date_trunc('week', CURRENT_DATE) + interval '6 days',
-          interval '1 day'
-        ) AS bucket
-      ),
-      aggregated AS (
-        SELECT
-          date_trunc('day', created_at) AS bucket,
-          COUNT(*) AS orders
-        FROM orders
-        WHERE created_at >= date_trunc('week', CURRENT_DATE)
-          AND created_at < date_trunc('week', CURRENT_DATE) + interval '7 days'
-        GROUP BY 1
-      )
-      SELECT
-        b.bucket,
-        COALESCE(a.orders, 0) AS orders
-      FROM buckets b
-      LEFT JOIN aggregated a ON b.bucket = a.bucket
+      LEFT JOIN aggregated a USING (bucket)
       ORDER BY b.bucket;
     `;
     labelFormat = "day";
-  } else if (range === "month") {
+  }
+
+  else if (range === "month") {
     query = `
       WITH buckets AS (
         SELECT generate_series(
           date_trunc('month', CURRENT_DATE),
-          date_trunc('month', CURRENT_DATE)
-            + interval '1 month'
-            - interval '1 day',
+          date_trunc('month', CURRENT_DATE) + interval '1 month' - interval '1 day',
           interval '1 day'
-        ) AS bucket
+        )::date AS bucket
       ),
       aggregated AS (
         SELECT
-          date_trunc('day', created_at) AS bucket,
+          created_at::date AS bucket,
           COUNT(*) AS orders
         FROM orders
         WHERE created_at >= date_trunc('month', CURRENT_DATE)
@@ -276,7 +280,7 @@ async function getTrendData(range) {
         b.bucket,
         COALESCE(a.orders, 0) AS orders
       FROM buckets b
-      LEFT JOIN aggregated a ON b.bucket = a.bucket
+      LEFT JOIN aggregated a USING (bucket)
       ORDER BY b.bucket;
     `;
     labelFormat = "day";
@@ -284,7 +288,7 @@ async function getTrendData(range) {
 
   const { rows } = await pool.query(query);
 
-  return rows.map((row) => {
+  return rows.map(row => {
     const date = new Date(row.bucket);
 
     let name;
@@ -423,111 +427,127 @@ async function getAnalyticsData(start, end) {
           AND o.created_at <  $2;
     `;
 
-    /** ---------- SALES TREND QUERY ---------- */
+    /** ---------- SALES TREND (ZERO-FILLED DAYS, REAL DATES) ---------- */
     const trendQuery = `
-      SELECT
-          DATE(o.created_at)         AS date,
-          TO_CHAR(o.created_at, 'Dy') AS day,
-          SUM(o.order_total)         AS sales,
-          COUNT(o.order_id)          AS orders,
-          ROUND(AVG(o.order_total))  AS aov
-      FROM orders o
-      WHERE
+      WITH days AS (
+        SELECT generate_series(
+          $1::date,
+          ($2::date - interval '1 day'),
+          interval '1 day'
+        )::date AS day
+      ),
+      aggregated AS (
+        SELECT
+          o.created_at::date AS day,
+          SUM(o.order_total) AS sales,
+          COUNT(o.order_id)  AS orders,
+          ROUND(AVG(o.order_total)) AS aov
+        FROM orders o
+        WHERE
           o.order_status = 'CLOSED'
           AND o.is_payment_done = true
           AND o.created_at >= $1
           AND o.created_at <  $2
-      GROUP BY DATE(o.created_at), TO_CHAR(o.created_at, 'Dy')
-      ORDER BY DATE(o.created_at);
+        GROUP BY o.created_at::date
+      )
+      SELECT
+        d.day AS date,
+        COALESCE(a.sales, 0) AS sales,
+        COALESCE(a.orders, 0) AS orders,
+        COALESCE(a.aov, 0) AS aov
+      FROM days d
+      LEFT JOIN aggregated a USING (day)
+      ORDER BY d.day;
     `;
 
-    /** -----------HOURLY RUSH -----------  */
-
+    /** ---------- HOURLY RUSH (ALL 24 HOURS) ---------- */
     const hourlyRushQuery = `
-  WITH hourly_per_day AS (
-      SELECT
-          DATE(o.created_at)              AS day,
-          EXTRACT(HOUR FROM o.created_at) AS hour,
-          COUNT(o.order_id)               AS orders
-      FROM orders o
-      WHERE
+      WITH hours AS (
+        SELECT generate_series(0, 23) AS hour
+      ),
+      hourly_orders AS (
+        SELECT
+          EXTRACT(HOUR FROM o.created_at)::int AS hour,
+          COUNT(o.order_id) AS orders
+        FROM orders o
+        WHERE
           o.order_status = 'CLOSED'
           AND o.is_payment_done = true
           AND o.created_at >= $1
           AND o.created_at <  $2
-      GROUP BY DATE(o.created_at), EXTRACT(HOUR FROM o.created_at)
-  )
-  SELECT
-      hour,
-      ROUND(AVG(orders)) AS avg_orders
-  FROM hourly_per_day
-  GROUP BY hour
-  ORDER BY hour;
-`;
+        GROUP BY EXTRACT(HOUR FROM o.created_at)
+      )
+      SELECT
+        h.hour,
+        COALESCE(ROUND(AVG(o.orders)), 0) AS avg_orders
+      FROM hours h
+      LEFT JOIN hourly_orders o USING (hour)
+      GROUP BY h.hour
+      ORDER BY h.hour;
+    `;
 
+    /** ---------- CATEGORY PERFORMANCE ---------- */
+    const categoryPerformanceQuery = `
+      SELECT
+          d.category AS name,
+          SUM(oi.quantity * oi.price_snapshot) AS sales,
+          SUM(oi.quantity) AS quantity
+      FROM order_items oi
+      JOIN orders o ON o.order_id = oi.order_id
+      JOIN dishes d ON d.dish_id = oi.dish_id
+      WHERE
+          o.order_status = 'CLOSED'
+          AND o.is_payment_done = true
+          AND oi.item_status != 'CANCELLED'
+          AND o.created_at >= $1
+          AND o.created_at <  $2
+      GROUP BY d.category
+      ORDER BY sales DESC
+      LIMIT 4;
+    `;
 
-const categoryPerformanceQuery = `SELECT
-    d.category                         AS name,
-    SUM(oi.quantity * oi.price_snapshot) AS sales,
-    SUM(oi.quantity)                   AS quantity
-FROM order_items oi
-JOIN orders o
-    ON o.order_id = oi.order_id
-JOIN dishes d
-    ON d.dish_id = oi.dish_id
-WHERE
-    o.order_status = 'CLOSED'
-    AND o.is_payment_done = true
-    AND oi.item_status != 'CANCELLED'
-    AND o.created_at >= $1
-    AND o.created_at <  $2
-GROUP BY d.category
-ORDER BY sales DESC LIMIT 4;
-`;
-
-
-const orderSizeQuery = `
-WITH order_item_counts AS (
-    SELECT
-        o.order_id,
-        SUM(oi.quantity) AS item_count
-    FROM orders o
-    JOIN order_items oi
-        ON oi.order_id = o.order_id
-    WHERE
-        o.order_status = 'CLOSED'
-        AND o.is_payment_done = true
-        AND oi.item_status != 'CANCELLED'
-        AND o.created_at >= $1
-        AND o.created_at <  $2
-    GROUP BY o.order_id
-),
-bucketed_orders AS (
-    SELECT
+    /** ---------- ORDER SIZE ---------- */
+    const orderSizeQuery = `
+      WITH order_item_counts AS (
+        SELECT
+            o.order_id,
+            SUM(oi.quantity) AS item_count
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE
+            o.order_status = 'CLOSED'
+            AND o.is_payment_done = true
+            AND oi.item_status != 'CANCELLED'
+            AND o.created_at >= $1
+            AND o.created_at <  $2
+        GROUP BY o.order_id
+      )
+      SELECT
         CASE
-            WHEN item_count = 1 THEN '1 Item'
-            WHEN item_count = 2 THEN '2 Items'
-            WHEN item_count BETWEEN 3 AND 4 THEN '3-4 Items'
-            ELSE '5+ Items'
-        END AS size
-    FROM order_item_counts
-)
-SELECT
-    size,
-    COUNT(*) AS count
-FROM bucketed_orders
-GROUP BY size
-ORDER BY
-    CASE size
-        WHEN '1 Item' THEN 1
-        WHEN '2 Items' THEN 2
-        WHEN '3-4 Items' THEN 3
-        ELSE 4
-    END;
-`;
+          WHEN item_count = 1 THEN '1 Item'
+          WHEN item_count = 2 THEN '2 Items'
+          WHEN item_count BETWEEN 3 AND 4 THEN '3-4 Items'
+          ELSE '5+ Items'
+        END AS size,
+        COUNT(*) AS count
+      FROM order_item_counts
+      GROUP BY item_count
+      ORDER BY
+        CASE
+          WHEN item_count = 1 THEN 1
+          WHEN item_count = 2 THEN 2
+          WHEN item_count BETWEEN 3 AND 4 THEN 3
+          ELSE 4
+        END;
+    `;
 
-
-    const [summaryRes, trendRes, hourlyRushRes, categoryPerformanceRes, orderSizeRes] = await Promise.all([
+    const [
+      summaryRes,
+      trendRes,
+      hourlyRushRes,
+      categoryPerformanceRes,
+      orderSizeRes
+    ] = await Promise.all([
       pool.query(summaryQuery, [start, end]),
       pool.query(trendQuery, [start, end]),
       pool.query(hourlyRushQuery, [start, end]),
@@ -539,47 +559,45 @@ ORDER BY
     const totalOrders = Number(summary.total_orders || 0);
 
     const msInDay = 24 * 60 * 60 * 1000;
-    const days = Math.max(
-      1,
-      Math.ceil((end.getTime() - start.getTime()) / msInDay)
-    );
+    const days = Math.max(1, Math.ceil((end - start) / msInDay));
 
     return {
       totalRevenue: Number(summary.total_revenue),
       totalOrders,
       avgOrdersPerDay: totalOrders / days,
       avgOrderValue: Number(summary.avg_order_value || 0),
-      avgNumberOfItemsPerOrder: Number(
-        summary.avg_number_of_items_per_order || 0
-      ),
+      avgNumberOfItemsPerOrder: Number(summary.avg_number_of_items_per_order || 0),
 
-      salesTrendData: trendRes.rows.map(row => ({
-        date: row.day.trim(),
-        sales: Number(row.sales),
-        orders: Number(row.orders),
-        aov: Number(row.aov)
+      salesTrendData: trendRes.rows.map(r => ({
+        date: r.date,              // YYYY-MM-DD
+        sales: Number(r.sales),
+        orders: Number(r.orders),
+        aov: Number(r.aov)
       })),
-      hourlyRushData: hourlyRushRes.rows.map(row => {
-        const hour = Number(row.hour);
-        const displayHour =
-          hour === 0 ? '12 AM' :
-          hour < 12 ? `${hour} AM` :
-          hour === 12 ? '12 PM' :
-          `${hour - 12} PM`;
+
+      hourlyRushData: hourlyRushRes.rows.map(r => {
+        const h = r.hour;
+        const label =
+          h === 0 ? '12 AM' :
+          h < 12 ? `${h} AM` :
+          h === 12 ? '12 PM' :
+          `${h - 12} PM`;
 
         return {
-          time: displayHour,
-          orders: Number(row.avg_orders)
+          time: label,
+          orders: Number(r.avg_orders)
         };
       }),
-      categoryPerformanceData: categoryPerformanceRes.rows.map(row => ({
-        name: row.name,
-        sales: Number(row.sales),
-        quantity: Number(row.quantity)
+
+      categoryPerformanceData: categoryPerformanceRes.rows.map(r => ({
+        name: r.name,
+        sales: Number(r.sales),
+        quantity: Number(r.quantity)
       })),
-      orderSizeData: orderSizeRes.rows.map(row => ({
-        size: row.size,
-        count: Number(row.count)
+
+      orderSizeData: orderSizeRes.rows.map(r => ({
+        size: r.size,
+        count: Number(r.count)
       }))
     };
 
@@ -587,6 +605,7 @@ ORDER BY
     throw error;
   }
 }
+
 
 async function getDishPerformance(start, end, type, limit) {
   const query = `
