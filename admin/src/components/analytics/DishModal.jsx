@@ -117,13 +117,13 @@ export default function DishModal({ isOpen, onClose, dishFilter, range }) {
                         <span className="bg-gray-100 px-2 py-1 rounded">{dish.category}</span>
                       </td>
                       <td className="p-3 text-sm text-gray-500 text-right">
-                        {dish.sales > 0 ? `₹${(dish.revenue / dish.sales).toFixed(0)}` : '-'}
+                        {dish.sales > 0 ? `₹${(dish.revenue / dish.sales / 100).toFixed(0)}` : '-'}
                       </td>
                       <td className="p-3 text-sm text-gray-800 text-right font-medium">
                         {dish.sales}
                       </td>
                       <td className="p-3 text-sm font-black text-gray-900 text-right">
-                        ₹{dish.revenue.toLocaleString()}
+                        ₹{(dish.revenue / 100).toLocaleString()}
                       </td>
                     </tr>
                   ))

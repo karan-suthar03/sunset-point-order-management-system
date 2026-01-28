@@ -226,7 +226,7 @@ function OrdersPage() {
             />
             <StatCard
               label="Total Revenue"
-              value={`₹${stats.revenue.toFixed(2)}`}
+              value={`₹${(stats.revenue / 100).toFixed(2)}`}
               icon={IndianRupeeIcon}
               color="text-indigo-600"
               bg="bg-indigo-50"
@@ -407,7 +407,7 @@ function OrdersPage() {
                       <span
                         className={`text-lg font-black ${isSelected && order.status !== "CLOSED" ? "text-white" : "text-gray-900"}`}
                       >
-                        ₹{total}
+                        ₹{(total/100).toFixed(2)}
                       </span>
                     </div>
 
