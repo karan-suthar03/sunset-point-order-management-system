@@ -1,0 +1,31 @@
+{
+  "name": "electron-react-app",
+  "version": "1.0.0",
+  "description": "Electron app with React + Vite",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron .",
+    "build:exe": "electron-builder"
+  },
+  "build": {
+    "appId": "com.yourcompany.electronreact",
+    "productName": "ElectronReactApp",
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
