@@ -92,11 +92,7 @@ function OrdersPage() {
   });
 
   const visibleOrders = useMemo(() => {
-    return filteredOrders.sort((a, b) => {
-      if (a.status === "CLOSED" && b.status !== "CLOSED") return 1;
-      if (b.status === "CLOSED" && a.status !== "CLOSED") return -1;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
+    return filteredOrders;
   }, [filteredOrders]);
 
   // --- Handlers ---
