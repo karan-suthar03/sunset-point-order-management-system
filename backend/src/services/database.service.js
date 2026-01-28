@@ -1089,6 +1089,7 @@ WHERE
     (NULLIF($1, '')::TEXT IS NULL OR o.order_tag ILIKE '%' || NULLIF($1, '') || '%')
     AND (NULLIF($2, '')::TEXT IS NULL OR o.created_at >= $2::DATE)
     AND (NULLIF($3, '')::TEXT IS NULL OR o.created_at <= $3::DATE)
+    AND o.order_status = 'CLOSED'
 
 GROUP BY o.order_id
 

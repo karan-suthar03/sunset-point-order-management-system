@@ -11,6 +11,10 @@ import {
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#6366F1"];
 
 export default function CategoryPerformanceWidget({ data, onViewAll }) {
+  data = data.map(cat => ({
+    ...cat,
+    psales: cat.sales / 100
+  }));
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col cursor-pointe">
       <div className="flex justify-between items-start mb-4">
@@ -37,7 +41,7 @@ export default function CategoryPerformanceWidget({ data, onViewAll }) {
                 innerRadius={50}
                 outerRadius={70}
                 paddingAngle={5}
-                dataKey="sales"
+                dataKey="psales"
                 nameKey="name"
               >
                 {(data || []).map((entry, index) => (
