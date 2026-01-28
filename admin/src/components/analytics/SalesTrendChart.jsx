@@ -17,7 +17,7 @@ export default function SalesTrendChart({ data }) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-lg font-bold text-gray-800">Sales & Order Volume Trends</h3>
-          <p className="text-sm text-gray-500">Correlation between daily revenue and order counts</p>
+        
         </div>
       </div>
       <div className="h-80 w-full">

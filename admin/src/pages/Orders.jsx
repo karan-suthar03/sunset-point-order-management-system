@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
@@ -11,6 +11,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { getOrders } from '../API/orders';
+
 
 export default function OrdersPage() {
   const navigate = useNavigate();
@@ -141,9 +142,9 @@ export default function OrdersPage() {
           </div>
           
           {/* Date Range Picker */}
-          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto cursor-pointer">
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg cursor-pointer">
-              <span className="text-xs font-bold text-slate-500 uppercase">From:</span>
+              <span className="text-xs font-bold text-slate-500 uppercase cursor-pointer">From:</span>
               <input 
                 type="date" 
                 value={dateRange.start}
@@ -151,14 +152,14 @@ export default function OrdersPage() {
                 className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
               />
             </div>
-            <div className="hidden sm:block text-slate-300">-</div>
+            <div className="hidden sm:block text-slate-300 cursor-pointer">-</div>
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg cursor-pointer">
-              <span className="text-xs font-bold text-slate-500 uppercase">To:</span>
+              <span className="text-xs font-bold text-slate-500 uppercase cursor-pointer">To:</span>
               <input 
                 type="date" 
                 value={dateRange.end}
                 onChange={(e) => handleDateChange('end', e.target.value)}
-                className="bg-transparent text-sm font-medium text-slate-700 outline-none"
+                className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
               />
             </div>
           </div>
