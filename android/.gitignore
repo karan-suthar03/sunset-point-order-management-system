@@ -58,3 +58,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Gradle daemon
+daemon/
+android/daemon/
