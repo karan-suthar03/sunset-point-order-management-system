@@ -1,11 +1,45 @@
 import apiClient from ".";
 
-async function getOrders() {
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+let getOrders;
+
+async function getOrders_w() {
   const response = await apiClient.get("/orders");
   return response.data;
 }
 
-async function createOrder(order) {
+async function getOrders_a() {
+  let result = await (new Promise((resolve) => {
+    const id = crypto?.randomUUID ? crypto.randomUUID() : uuid();
+    window.__nativePromises[id] = resolve;
+    window.NativeApi.getOrders(
+      id
+    );
+  }));
+  return result;
+}
+
+let createOrder;
+
+async function createOrder_a(order) {
+  await (new Promise((resolve) => {
+    const id = crypto?.randomUUID ? crypto.randomUUID() : uuid();
+    window.__nativePromises[id] = resolve;
+    window.NativeApi.createOrder(
+      id,
+      JSON.stringify(order)
+    );
+  }));
+}
+
+async function createOrder_w(order) {
   const response = await apiClient.post("/orders", order);
   return response.data;
 }
@@ -36,6 +70,14 @@ async function toggleOrderPayment(orderId) {
 async function cancelOrder(orderId) {
   const response = await apiClient.put(`/orders/cancel?id=${orderId}`);
   return response.data;
+}
+
+if (window.NativeApi) {
+    getOrders = getOrders_a;
+    createOrder = createOrder_a;
+} else {
+    getOrders = getOrders_w;
+    createOrder = createOrder_w;
 }
 
 export {

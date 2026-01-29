@@ -1,2 +1,33 @@
-/build
-/src/main/assets/react
+# Build outputs
+/build/
+*.apk
+*.ap_
+*.dex
+*.class
+
+# Cache
+caches/
+
+# Generated files
+gen/
+bin/
+
+# React assets
+/src/main/assets/react/*
+
+# IDE
+.idea/
+*.iml
+.gradle/
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Native
+.externalNativeBuild/
+.cxx/
+*.o
+*.a
+*.so

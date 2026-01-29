@@ -6,6 +6,9 @@ import android.webkit.WebResourceResponse;
 import com.karan.sunset_point.App;
 import com.karan.sunset_point.data.AppDatabase;
 import com.karan.sunset_point.data.entity.Dish;
+import com.karan.sunset_point.data.entity.Order;
+import com.karan.sunset_point.data.entity.OrderItem;
+import com.karan.sunset_point.data.entity.OrderStatus;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -63,6 +66,22 @@ public class Handler {
         } catch (Exception e) {
             e.printStackTrace();
             return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+
+    public void createOrder(String tag, List<OrderItem> items) {
+        try {
+            Order order = new Order();
+            order.order_tag = tag;
+            long orderId = appDatabase.orderDao().insertOrder(order);
+            for (OrderItem item : items) {
+                item.order_id = (int) orderId;
+                appDatabase.orderItemDao().insertItem(item);
+            }
+            appDatabase.orderDao().recalcOrderTotal((int) orderId);
+
+        } catch (Exception e){
+            e.printStackTrace();
         }
     }
 }

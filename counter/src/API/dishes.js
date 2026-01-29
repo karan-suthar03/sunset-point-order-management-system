@@ -1,16 +1,19 @@
 import apiClient from ".";
 
-window.__nativePromises = {};
-window.__nativeResolve = function (id, response) {
-  if (window.__nativePromises[id]) {
-    window.__nativePromises[id](JSON.parse(response));
-    delete window.__nativePromises[id];
-  }
-};
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
-async function getDishes() {
+let getDishes;
+
+
+async function getDishes_a() {
   let result = await (new Promise((resolve) => {
-    const id = crypto.randomUUID();
+    const id = crypto?.randomUUID ? crypto.randomUUID() : uuid();
 
     window.__nativePromises[id] = resolve;
 
@@ -23,9 +26,15 @@ async function getDishes() {
 
 
 
-// async function getDishes() {
-//     const response = await apiClient.get('/dishes');
-//     return response.data;
-// }
+async function getDishes_w() {
+    const response = await apiClient.get('/dishes');
+    return response.data;
+}
+
+if (window.NativeApi) {
+    getDishes = getDishes_a;
+} else {
+    getDishes = getDishes_w;
+}
 
 export { getDishes };

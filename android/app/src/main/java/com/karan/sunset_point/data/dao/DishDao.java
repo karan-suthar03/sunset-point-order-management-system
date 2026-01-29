@@ -30,4 +30,7 @@ public interface DishDao {
 
     @Query("SELECT * FROM dishes WHERE dish_id = :id LIMIT 1")
     Dish getDishById(int id);
+
+    @Query("SELECT COUNT(*) FROM dishes")
+    int countDishes();
 }

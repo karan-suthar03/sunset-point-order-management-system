@@ -7,14 +7,11 @@ import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toolbar;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.karan.sunset_point.data.AppDatabase;
-import com.karan.sunset_point.data.entity.Dish;
 import com.karan.sunset_point.data.handler.NativeApi;
-
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -23,11 +20,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         WebView webView = findViewById(R.id.mainWebView);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setBuiltInZoomControls(false);
@@ -38,7 +37,6 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient());
 
         // Load React build
-        webView.loadUrl("file:///android_asset/react/index.html");
-
+        webView.loadUrl("http://10.136.95.21:5173/");
     }
 }
