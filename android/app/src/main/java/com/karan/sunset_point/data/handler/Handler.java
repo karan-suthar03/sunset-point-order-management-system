@@ -10,6 +10,7 @@ import com.karan.sunset_point.data.AppDatabase;
 import com.karan.sunset_point.data.Responses.OrderItemResponse;
 import com.karan.sunset_point.data.Responses.OrderResponse;
 import com.karan.sunset_point.data.entity.Dish;
+import com.karan.sunset_point.data.entity.ItemStatus;
 import com.karan.sunset_point.data.entity.Order;
 import com.karan.sunset_point.data.entity.OrderItem;
 import com.karan.sunset_point.data.entity.OrderStatus;
@@ -149,6 +150,62 @@ public class Handler {
             e.printStackTrace();
             Log.d("aasdd","asdkjashdasjhd");
             return "[]";
+        }
+    }
+
+    public String toggleServedStatus(int orderId, int itemId) {
+        try {
+            String result;
+            OrderItem item = appDatabase.orderItemDao().getOrderItemById(orderId,itemId);
+            if (item.item_status == ItemStatus.SERVED){
+                result = "PENDING";
+                item.item_status = ItemStatus.PENDING;
+            }else{
+                result = "SERVED";
+                item.item_status = ItemStatus.SERVED;
+            }
+            appDatabase.orderItemDao().updateItemStatus(itemId,item.item_status);
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "0";
+        }
+    }
+
+    public void closeOrder(int orderId) {
+        try {
+            appDatabase.orderItemDao().setServed(orderId);
+            appDatabase.orderDao().closeOrder(orderId);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteOrderItem(int itemId) {
+        try {
+            appDatabase.orderItemDao().deleteItem(itemId);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Boolean toggleOrderPayment(int orderId) {
+        try {
+            Order order = appDatabase.orderDao().getOrderById(orderId);
+            order.is_payment_done = !order.is_payment_done;
+            appDatabase.orderDao().setIsPayment(order.is_payment_done);
+            return order.is_payment_done;
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void cancelOrder(int orderId) {
+        try {
+            appDatabase.orderDao().cancelOrder(orderId);
+        } catch (Exception e){
+            e.printStackTrace();
         }
     }
 }

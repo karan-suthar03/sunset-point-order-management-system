@@ -24,4 +24,10 @@ public interface OrderItemDao {
 
     @Query("DELETE FROM order_items WHERE order_item_id = :itemId")
     void deleteItem(int itemId);
+
+    @Query("SELECT * FROM order_items WHERE order_id = :orderId AND order_item_id = :itemId")
+    OrderItem getOrderItemById(int orderId, int itemId);
+
+    @Query("UPDATE order_items SET item_status = 'SERVED' WHERE order_id = :orderId")
+    void setServed(int orderId);
 }

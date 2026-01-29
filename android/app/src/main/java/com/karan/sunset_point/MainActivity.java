@@ -37,6 +37,6 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient());
 
         // Load React build
-        webView.loadUrl("http://10.136.95.21:5173/");
+        webView.loadUrl("http://192.168.31.55:5173/");
     }
 }

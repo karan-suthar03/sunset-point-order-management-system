@@ -4,7 +4,7 @@ import axios from 'axios';
 window.__nativePromises = {};
 window.__nativeResolve = function (id, response) {
   if (window.__nativePromises[id]) {
-    window.__nativePromises[id](JSON.parse(response));
+    window.__nativePromises[id](response? JSON.parse(response) : null);
     delete window.__nativePromises[id];
   }
 };

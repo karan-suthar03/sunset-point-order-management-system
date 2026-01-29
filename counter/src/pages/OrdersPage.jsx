@@ -8,6 +8,7 @@ import {
   toggleServedStatus,
   deleteItemFromOrder,
   toggleOrderPayment,
+  cancelOrder,
 } from "../API/orders.js";
 import {
   Plus,
@@ -180,15 +181,18 @@ function OrdersPage() {
   const executeDialogAction = () => {
     const { type, orderId } = confirmDialog;
     if (type === "cancel") {
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      if (confirmDialog.callBack) confirmDialog.callBack();
-      if (selectedOrderId === orderId) setSelectedOrderId(null);
-      setConfirmDialog({
-        show: false,
-        type: null,
-        orderId: null,
-        callBack: null,
-      });
+      (async () => {
+        await cancelOrder(orderId);
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));    
+        if (selectedOrderId === orderId) setSelectedOrderId(null);
+        setConfirmDialog({
+          show: false,
+          type: null,
+          orderId: null,
+          callBack: null,
+        });  
+        if (confirmDialog.callBack) confirmDialog.callBack();
+      })();
     } else if (type === "close") {
       (async () => {
         try {

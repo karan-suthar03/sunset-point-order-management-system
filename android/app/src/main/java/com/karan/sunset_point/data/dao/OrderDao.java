@@ -65,4 +65,13 @@ public interface OrderDao {
         int total = calculateOrderTotal(orderId);
         updateOrderTotal(orderId, total);
     }
+
+    @Query("UPDATE orders SET order_status = 'CLOSED',is_payment_done = 1 WHERE order_id = :orderId")
+    void closeOrder(int orderId);
+
+    @Query("UPDATE orders SET is_payment_done = :isPaymentDone")
+    void setIsPayment(boolean isPaymentDone);
+
+    @Query("DELETE FROM orders WHERE order_id = :orderId")
+    void cancelOrder(int orderId);
 }

@@ -10,8 +10,7 @@ import {
 } from "lucide-react";
 import OrderItemsList from "./OrderItemsList";
 import dayjs from "dayjs";
-import { useState } from "react"; // Ensure useState is imported
-import { cancelOrder } from "../API/orders";
+import { useState } from "react";
 
 function OrderCard({
   order,
@@ -41,8 +40,6 @@ function OrderCard({
   const handleCancel = async () => {
     setIsCancelling(true);
     onCancelOrder(async () => {
-      
-      await cancelOrder(order.id)
       setIsCancelling(false);
     });
   };
