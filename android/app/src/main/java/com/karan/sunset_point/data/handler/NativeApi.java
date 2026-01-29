@@ -89,9 +89,16 @@ public class NativeApi {
         executor.execute(() -> {
             String result;
             try {
+                result = Handler.getInstance().getOrders();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+
+            Log.d("tag",result);
+
+            String js = "window.__nativeResolve(" +
+                    JSONObject.quote(requestId) + "," + JSONObject.quote(result) + ");";
+            webView.post(() -> webView.evaluateJavascript(js, null));
         });
     }
 }

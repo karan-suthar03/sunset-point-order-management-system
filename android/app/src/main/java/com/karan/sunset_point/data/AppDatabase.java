@@ -30,7 +30,7 @@ import java.util.concurrent.Executors;
                 OrderItem.class,
                 Order.class
         },
-        version = 3
+        version = 4
 )
 public abstract class AppDatabase extends RoomDatabase {
 

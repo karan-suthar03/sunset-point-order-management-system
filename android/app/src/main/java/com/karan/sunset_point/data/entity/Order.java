@@ -1,5 +1,6 @@
 package com.karan.sunset_point.data.entity;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.annotation.NonNull;
@@ -19,5 +20,6 @@ public class Order {
     @NonNull
     public OrderStatus order_status = OrderStatus.OPEN;
 
-    public long created_at = System.currentTimeMillis();
+    @ColumnInfo(name = "created_at", defaultValue = "CURRENT_TIMESTAMP")
+    public String created_at;
 }

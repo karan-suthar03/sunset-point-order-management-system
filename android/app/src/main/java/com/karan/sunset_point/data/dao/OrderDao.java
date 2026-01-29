@@ -6,6 +6,7 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 
 import com.karan.sunset_point.data.entity.Order;
+import com.karan.sunset_point.data.entity.OrderWithItemsRow;
 
 import java.util.List;
 
@@ -26,6 +27,37 @@ public interface OrderDao {
 
     @Query("SELECT COALESCE(SUM(quantity * price_snapshot), 0) FROM order_items WHERE order_id = :orderId")
     int calculateOrderTotal(int orderId);
+
+    @Query("SELECT \n" +
+            "  o.order_id,\n" +
+            "  o.order_tag,\n" +
+            "  o.created_at,\n" +
+            "  o.order_status,\n" +
+            "  o.is_payment_done,\n" +
+            "  o.order_total,\n" +
+            "\n" +
+            "  oi.order_item_id,\n" +
+            "  oi.quantity,\n" +
+            "  oi.item_status,\n" +
+            "  oi.price_snapshot AS price,\n" +
+            "  oi.dish_name_snapshot AS dish_name,\n" +
+            "\n" +
+            "  d.dish_id,\n" +
+            "  d.category\n" +
+            "\n" +
+            "FROM orders o\n" +
+            "LEFT JOIN order_items oi\n" +
+            "  ON o.order_id = oi.order_id\n" +
+            "LEFT JOIN dishes d\n" +
+            "  ON oi.dish_id = d.dish_id\n" +
+            "\n" +
+            "WHERE o.created_at >= datetime(date('now', '-4 hours'), '+4 hours')\n" +
+            "AND   o.created_at <  datetime(date('now', '-4 hours', '+1 day'), '+4 hours')\n" +
+            "OR o.order_status = 'OPEN'"+
+            "\n" +
+            "ORDER BY o.created_at, oi.order_item_id")
+    List<OrderWithItemsRow> getTodayOrders();
+
 
     /** replaces trigger + function */
     @Transaction

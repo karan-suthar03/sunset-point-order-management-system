@@ -1,14 +1,19 @@
 package com.karan.sunset_point.data.handler;
 
+import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 
+import com.google.gson.Gson;
 import com.karan.sunset_point.App;
 import com.karan.sunset_point.data.AppDatabase;
+import com.karan.sunset_point.data.Responses.OrderItemResponse;
+import com.karan.sunset_point.data.Responses.OrderResponse;
 import com.karan.sunset_point.data.entity.Dish;
 import com.karan.sunset_point.data.entity.Order;
 import com.karan.sunset_point.data.entity.OrderItem;
 import com.karan.sunset_point.data.entity.OrderStatus;
+import com.karan.sunset_point.data.entity.OrderWithItemsRow;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,6 +21,8 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,11 +75,15 @@ public class Handler {
             return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
         }
     }
-
+    public static String getNowSqliteFormat() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        return now.toString().replace("T", " ");
+    }
     public void createOrder(String tag, List<OrderItem> items) {
         try {
             Order order = new Order();
             order.order_tag = tag;
+            order.created_at = getNowSqliteFormat();
             long orderId = appDatabase.orderDao().insertOrder(order);
             for (OrderItem item : items) {
                 item.order_id = (int) orderId;
@@ -82,6 +93,62 @@ public class Handler {
 
         } catch (Exception e){
             e.printStackTrace();
+        }
+    }
+    public String getOrders() {
+        try {
+
+            List<OrderWithItemsRow> rows =
+                    appDatabase.orderDao().getTodayOrders();
+
+            List<Order> orders = appDatabase.orderDao().getAllOrders();
+
+            for (Order o : orders){
+                Log.d("tag",o.created_at+"");
+            }
+
+            Map<Integer, OrderResponse> orderMap = new LinkedHashMap<>();
+
+            for (OrderWithItemsRow row : rows) {
+
+
+                // Create order if not exists
+                OrderResponse order = orderMap.get(row.order_id);
+
+                if (order == null) {
+                    order = new OrderResponse();
+                    order.id = row.order_id;
+                    order.tag = row.order_tag;
+                    order.createdAt = row.created_at;
+                    order.status = row.order_status;
+                    order.paymentDone = row.is_payment_done;
+                    order.orderTotal = row.order_total;
+
+                    orderMap.put(row.order_id, order);
+                }
+
+                // Add item if exists (LEFT JOIN safety)
+                if (row.order_item_id != null) {
+                    OrderItemResponse item = new OrderItemResponse();
+                    item.id = row.order_item_id;
+                    item.quantity = row.quantity;
+                    item.status = row.item_status;
+                    item.name = row.dish_name;
+                    item.category = row.category;
+                    item.price = row.price;
+
+                    order.items.add(item);
+                }
+            }
+
+            List<OrderResponse> result = new ArrayList<>(orderMap.values());
+
+            return new Gson().toJson(result);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.d("aasdd","asdkjashdasjhd");
+            return "[]";
         }
     }
 }
