@@ -27,6 +27,8 @@ function Header() {
         if (result){
           setPrinterName(result.name || 'Unknown Printer');
           setPrinterStatus('connected');
+        }else{
+          setPrinterStatus('disconnected');
         }
         // if (result && result.name) {
         //   setPrinterName(result.name);
