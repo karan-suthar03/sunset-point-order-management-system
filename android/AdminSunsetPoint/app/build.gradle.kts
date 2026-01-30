@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    annotationProcessor(libs.room.compiler)
     implementation(libs.room.common.jvm)
     implementation(libs.gson)
     implementation(libs.room.runtime.android)
