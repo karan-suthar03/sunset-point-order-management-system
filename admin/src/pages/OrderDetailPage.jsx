@@ -66,13 +66,12 @@ export default function OrderDetailPage() {
             
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-slate-900">{order.order_tag}</h1>
+                <h1 className="text-2xl font-bold text-slate-900">ID: #{order.order_id}</h1>
                 <StatusBadge status={order.order_status} />
               </div>
               <div className="flex items-center gap-2 mt-1 text-sm text-slate-500 font-medium">
                 <span className="flex items-center gap-1">
-                  <Hash size={14} />
-                  {order.order_id}
+                  {order.order_tag}
                 </span>
                 <span className="text-slate-300">•</span>
                 <span className="flex items-center gap-1">

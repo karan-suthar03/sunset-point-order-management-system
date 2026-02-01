@@ -130,19 +130,6 @@ function Header() {
             <span className="text-xs text-gray-500 font-medium">{formattedDate}</span>
           </div>
 
-          {/* Icon Actions */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative cursor-pointer">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            
-            {/* Added Settings just for visual balance */}
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-              <Settings size={20} />
-            </button>
-          </div>
-
         </div>
       </div>
     </header>

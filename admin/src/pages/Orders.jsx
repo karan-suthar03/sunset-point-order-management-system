@@ -217,8 +217,8 @@ export default function OrdersPage() {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <p className="font-bold text-slate-800">{order.order_tag}</p>
-                          <p className="text-xs text-slate-400">ID: #{order.order_id}</p>
+                          <p className="font-bold text-slate-800">ID: #{order.order_id}</p>
+                          <p className="text-xs text-slate-400">{order.order_tag}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

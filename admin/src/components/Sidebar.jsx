@@ -37,7 +37,6 @@ export default function Sidebar() {
         </div>
         <div>
           <h1 className="font-bold text-lg tracking-tight">RestoAdmin</h1>
-          <p className="text-xs text-gray-400 font-medium">Manager Portal</p>
         </div>
       </div>
 

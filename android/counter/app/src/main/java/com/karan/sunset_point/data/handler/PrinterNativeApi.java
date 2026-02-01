@@ -34,6 +34,7 @@ public class PrinterNativeApi {
     public void connectPrinter(String requestId){
         executor.execute(() -> {
             try {
+                Log.d("conneting",requestId);
                 PrinterManager.connect((deviceName, connection, printer) -> {
                     JSONObject obj = new JSONObject();
                     try {
@@ -48,6 +49,15 @@ public class PrinterNativeApi {
                     webView.post(()->webView.evaluateJavascript(js,null));
                 });
             } catch (Exception e) {
+                // Show error message to user
+                webView.post(() -> {
+                    android.widget.Toast.makeText(
+                        webView.getContext(),
+                        e.getMessage() != null ? e.getMessage() : "Failed to connect printer",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show();
+                });
+                
                 String js = "window.__nativeResolve(" +
                         JSONObject.quote(requestId) +
                         ");";
@@ -63,56 +73,59 @@ public class PrinterNativeApi {
         StringBuilder sb = new StringBuilder();
 
         int totalItems = 0;
+        int slNo = 1;
 
-        // Header
+// ================= TITLE =================
         sb.append("[C]================================\n");
         sb.append("[C]KOT\n");
         sb.append("[C]================================\n");
-        sb.append("\n");
 
-        // Order Info
-        sb.append("[L]Order : ").append(order.id).append("\n");
+// ================= ORDER ID + DATE =================
+        sb.append("[L]Order Number : ").append(order.id).append("\n");
 
-        if (order.tag != null && !order.tag.isEmpty()) {
-            sb.append("[L]Tag   : ").append(order.tag).append("\n");
+// ================= CUSTOMER / TABLE =================
+        if (order.tag != null) {
+            sb.append("[L]Customer : ").append(order.tag).append("\n");
         }
-
         if (order.createdAt != null && order.createdAt.length() >= 16) {
-            String time = order.createdAt.substring(11, 16);
-            sb.append("[R]").append(time).append("\n");
+            String date = order.createdAt.substring(0, 10);   // yyyy-MM-dd
+            String time = order.createdAt.substring(11, 16);  // HH:mm
+            sb.append("[R]").append(date).append(" ").append(time);
         }
-
         sb.append("\n");
 
-        // Items Header
-        sb.append("[L]--------------------------------\n");
-        sb.append("[L]QTY  ITEM\n");
-        sb.append("[L]--------------------------------\n");
-        sb.append("\n");
 
-        // Items
+// ================= ITEMS HEADER =================
+        sb.append("[L]--------------------------------\n");
+        sb.append("[L]Sl.No  Item Name             Qty\n");
+        sb.append("[L]--------------------------------\n");
+
+// ================= ITEMS =================
         for (OrderItemResponse item : order.items) {
 
-            // Skip cancelled
             if ("CANCELLED".equalsIgnoreCase(item.status)) continue;
 
             totalItems += item.quantity;
 
+            // Sl.No(5) Item(21) Qty(3)
             sb.append("[L]");
-            sb.append(String.format("%-4d %s", item.quantity, item.name));
+            sb.append(String.format(
+                    "%-6d%-21s%3d",
+                    slNo++,
+                    item.name.length() > 21
+                            ? item.name.substring(0, 21)
+                            : item.name,
+                    item.quantity
+            ));
             sb.append("\n");
         }
 
-        sb.append("\n");
-
-        // Footer
+// ================= FOOTER =================
         sb.append("[L]--------------------------------\n");
         sb.append("[L]Total Items : ").append(totalItems).append("\n");
-        sb.append("\n");
-        sb.append("[C]================================\n");
-        for (int i = 0;i<4;i++){
-            sb.append("\n ");
-        }
+
+// ================= FEED =================
+        sb.append(" \n \n \n ");
 
         return sb.toString();
     }
@@ -126,6 +139,14 @@ public class PrinterNativeApi {
                 String text = formatKotDantsu(order);
                 PrinterManager.print(text);
             } catch (Exception e) {
+                // Show error message to user
+                webView.post(() -> {
+                    android.widget.Toast.makeText(
+                        webView.getContext(),
+                        e.getMessage() != null ? e.getMessage() : "Failed to print order",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show();
+                });
                 e.printStackTrace();
             }
 

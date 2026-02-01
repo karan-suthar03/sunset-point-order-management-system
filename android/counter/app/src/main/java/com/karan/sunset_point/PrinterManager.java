@@ -4,6 +4,7 @@ import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.pm.PackageManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 
@@ -22,16 +23,20 @@ public class PrinterManager {
 
     public static synchronized void connect(OnPrinterConnected callback) throws Exception {
 
+        // Check if Bluetooth is enabled
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null) {
+            throw new Exception("Bluetooth is not supported on this device");
+        }
+        
+        if (!bluetoothAdapter.isEnabled()) {
+            throw new Exception("Bluetooth is disabled. Please enable Bluetooth to use printing functionality");
+        }
+
         if (printer != null && connection != null) {
             if (callback != null) {
                 if (ActivityCompat.checkSelfPermission(App.context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
+
                     return;
                 }
                 String name = connection.getDevice().getName();
