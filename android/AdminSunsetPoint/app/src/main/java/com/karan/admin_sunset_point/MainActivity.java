@@ -6,16 +6,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.karan.admin_sunset_point.data.handler.NativeApi;
 
 public class MainActivity extends AppCompatActivity {
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,10 +30,9 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowFileAccessFromFileURLs(true);
         settings.setAllowUniversalAccessFromFileURLs(true);
         webView.addJavascriptInterface(new NativeApi(webView), "NativeApi");
-//        webView.addJavascriptInterface(new PrinterNativeApi(webView), "PrinterNativeApi");
         webView.setWebViewClient(new WebViewClient());
 
         // Load React build
-        webView.loadUrl("http://10.254.173.21:5174/");
+        webView.loadUrl("http://192.168.31.55:5173/");
     }
 }

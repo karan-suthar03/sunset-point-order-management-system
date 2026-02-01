@@ -29,14 +29,6 @@ function SidebarItem({ to, icon: Icon, label }) {
 }
 
 export default function Sidebar() {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    // Add logout logic here
-    console.log("Logging out...");
-    navigate("/");
-  };
-
   return (
     <aside className="w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col fixed h-full z-20">
       <div className="p-6 border-b border-gray-100 flex items-center gap-3">
@@ -60,18 +52,9 @@ export default function Sidebar() {
         </div>
         <SidebarItem to="/orders" icon={ShoppingBag} label="Orders History" />
         <SidebarItem to="/menu" icon={UtensilsCrossed} label="Menu Items" />
-        <SidebarItem to="/inventory" icon={Package} label="Inventory" />
+        {/* Inventory is disabled on Android - only available on web */}
+        {!window.NativeApi && <SidebarItem to="/inventory" icon={Package} label="Inventory" />}
       </nav>
-
-      <div className="p-4 border-t border-gray-100">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-        >
-          <LogOut size={20} />
-          <span>Logout</span>
-        </button>
-      </div>
     </aside>
   );
 }

@@ -15,7 +15,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { getCategories, getMenuItemById, updateMenuItem } from '../API/menu';
-import { getAllIngredients } from '../API/inventory';
+// Inventory is disabled on Android - only available on web
+// import { getAllIngredients } from '../API/inventory';
 
 // --- REUSABLE COMPONENT: Searchable Dropdown with Add Option ---
 const SearchableDropdown = ({ 
@@ -199,8 +200,9 @@ export default function MenuItemPage() {
     try {
       const data = await getCategories();
       setCategories(data);
-      const allIngredientsData = await getAllIngredients();
-      setAllIngredients(allIngredientsData);
+      // Inventory/Ingredients disabled on Android
+      // const allIngredientsData = await getAllIngredients();
+      // setAllIngredients(allIngredientsData);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
     }
@@ -381,7 +383,8 @@ export default function MenuItemPage() {
             </div>
           </div>
 
-          {/* RIGHT: Inventory/Recipe */}
+          {/* RIGHT: Inventory/Recipe - Disabled on Android, only available on web */}
+          {!window.NativeApi && (
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 h-full flex flex-col relative">
               
@@ -490,6 +493,7 @@ export default function MenuItemPage() {
               </div>
             </div>
           </div>
+          )}
 
         </div>
       </div>

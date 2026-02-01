@@ -302,4 +302,94 @@ public interface OrderDao {
             String end,
             int limit
     );
+
+
+    @Transaction
+    @Query("\n" +
+            "    SELECT *\n" +
+            "    FROM orders o\n" +
+            "    WHERE\n" +
+            "        o.order_status = 'CLOSED'\n" +
+            "        AND (:search = '' OR o.order_tag LIKE '%' || :search || '%')\n" +
+            "        AND (:start IS NULL OR o.created_at >= datetime(:start, 'start of day'))\n" +
+            "        AND (:end   IS NULL OR o.created_at <  datetime(:end, '+1 day'))\n" +
+            "    ORDER BY o.created_at DESC\n" +
+            "    LIMIT 10\n" +
+            "    OFFSET (:page - 1) * 10\n")
+    List<OrderWithItems> getOrdersByCreatedDesc(
+            String search,
+            String start,
+            String end,
+            int page
+    );
+
+    @Transaction
+    @Query("\n" +
+            "    SELECT *\n" +
+            "    FROM orders o\n" +
+            "    WHERE\n" +
+            "        o.order_status = 'CLOSED'\n" +
+            "        AND (:search = '' OR o.order_tag LIKE '%' || :search || '%')\n" +
+            "        AND (:start IS NULL OR o.created_at >= datetime(:start, 'start of day'))\n" +
+            "        AND (:end   IS NULL OR o.created_at <  datetime(:end, '+1 day'))\n" +
+            "    ORDER BY o.created_at ASC\n" +
+            "    LIMIT 10\n" +
+            "    OFFSET (:page - 1) * 10\n")
+    List<OrderWithItems> getOrdersByCreatedAsc(
+            String search,
+            String start,
+            String end,
+            int page
+    );
+
+    @Transaction
+    @Query("\n" +
+            "    SELECT *\n" +
+            "    FROM orders o\n" +
+            "    WHERE\n" +
+            "        o.order_status = 'CLOSED'\n" +
+            "        AND (:search = '' OR o.order_tag LIKE '%' || :search || '%')\n" +
+            "        AND (:start IS NULL OR o.created_at >= datetime(:start, 'start of day'))\n" +
+            "        AND (:end   IS NULL OR o.created_at <  datetime(:end, '+1 day'))\n" +
+            "    ORDER BY o.order_total DESC\n" +
+            "    LIMIT 10\n" +
+            "    OFFSET (:page - 1) * 10\n")
+    List<OrderWithItems> getOrdersByTotalDesc(
+            String search,
+            String start,
+            String end,
+            int page
+    );
+
+
+    @Transaction
+    @Query("\n" +
+            "    SELECT *\n" +
+            "    FROM orders o\n" +
+            "            WHERE\n" +
+            "    o.order_status = 'CLOSED'\n" +
+            "    AND (:search = '' OR o.order_tag LIKE '%' || :search || '%')\n" +
+            "    AND (:start IS NULL OR o.created_at >= datetime(:start, 'start of day'))\n" +
+            "    AND (:end   IS NULL OR o.created_at <  datetime(:end, '+1 day'))\n" +
+            "    ORDER BY o.order_total ASC\n" +
+            "    LIMIT 10\n" +
+            "    OFFSET (:page - 1) * 10")
+    List<OrderWithItems> getOrdersByTotalAsc(
+            String search,
+            String start,
+            String end,
+            int page
+    );
+
+    @Transaction
+    @Query("SELECT * FROM orders WHERE order_id = :orderId")
+    OrderWithItems getOrderByIdWithItems(int orderId);
+
+    @Query("SELECT COALESCE(SUM(order_total), 0) " +
+            "FROM orders " +
+            "WHERE order_status = 'CLOSED' " +
+            "AND is_payment_done = 1 " +
+            "AND DATE(created_at) = DATE('now')")
+    int getTodaysTotalSales();
+
 }
