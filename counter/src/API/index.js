@@ -89,6 +89,21 @@ export function getPrinterState() {
   return currentPrinterState;
 }
 
+// Back button handler
+let backPressHandler = null;
+
+export function setBackPressHandler(handler) {
+  backPressHandler = handler;
+}
+
+// This function is called by Android when back button is pressed
+window.__handleBackPress = function() {
+  if (backPressHandler && typeof backPressHandler === 'function') {
+    return backPressHandler();
+  }
+  return false;
+};
+
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:3000',

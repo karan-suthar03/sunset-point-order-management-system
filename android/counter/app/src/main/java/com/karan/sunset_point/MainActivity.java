@@ -16,7 +16,9 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.karan.sunset_point.data.handler.NativeApi;
 import com.karan.sunset_point.data.handler.PrinterNativeApi;
@@ -25,6 +27,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static WebView webView;
     private BroadcastReceiver bluetoothStateReceiver;
+    private long backPressedTime;
+    private Toast backToast;
+    private OnBackPressedCallback backPressedCallback;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -59,6 +64,50 @@ public class MainActivity extends AppCompatActivity {
         webView.postDelayed(() -> {
             sendInitialStates();
         }, 1000);
+
+        // Setup back press handler using OnBackPressedDispatcher
+        setupBackPressHandler();
+    }
+
+    private void setupBackPressHandler() {
+        backPressedCallback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (webView != null) {
+                    // Ask WebView to handle back press
+                    webView.evaluateJavascript(
+                        "(function() { " +
+                        "  if (window.__handleBackPress) { " +
+                        "    return window.__handleBackPress(); " +
+                        "  } " +
+                        "  return false; " +
+                        "})();",
+                        result -> {
+                            // result will be "true" if WebView handled it, "false" if not
+                            if ("true".equals(result)) {
+                                // WebView handled the back press (closed a popup/card)
+                                return;
+                            }
+                            
+                            // Nothing to close in WebView, show double-press-to-exit toast
+                            if (backPressedTime + 2000 > System.currentTimeMillis()) {
+                                // Second press within 2 seconds - exit app
+                                if (backToast != null) {
+                                    backToast.cancel();
+                                }
+                                finishAffinity(); // This kills the app completely
+                            } else {
+                                // First press - show toast
+                                backToast = Toast.makeText(MainActivity.this, "Press back again to exit", Toast.LENGTH_SHORT);
+                                backToast.show();
+                            }
+                            backPressedTime = System.currentTimeMillis();
+                        }
+                    );
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, backPressedCallback);
     }
 
     private void registerBluetoothStateReceiver() {
@@ -163,6 +212,9 @@ public class MainActivity extends AppCompatActivity {
 
         if (!bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
     }
@@ -189,6 +241,14 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             checkAndEnableBluetooth();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (bluetoothStateReceiver != null) {
+            unregisterReceiver(bluetoothStateReceiver);
         }
     }
 

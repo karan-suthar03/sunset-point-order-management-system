@@ -10,6 +10,7 @@ import {
   toggleOrderPayment,
   cancelOrder,
 } from "../API/orders.js";
+import { setBackPressHandler } from "../API/index.js";
 import {
   Plus,
   Search,
@@ -56,6 +57,32 @@ function OrdersPage() {
     }, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  // --- Back Button Handler ---
+  useEffect(() => {
+    const handleBackPress = () => {
+      // Priority 1: Close create order popup if open
+      if (showOrderPopup) {
+        setShowOrderPopup(false);
+        return true; // Handled
+      }
+      
+      // Priority 2: Close order card if open
+      if (selectedOrderId !== null) {
+        setSelectedOrderId(null);
+        return true; // Handled
+      }
+      
+      // Nothing to close, let Android handle it (show toast and exit logic)
+      return false;
+    };
+    
+    setBackPressHandler(handleBackPress);
+    
+    return () => {
+      setBackPressHandler(null);
+    };
+  }, [showOrderPopup, selectedOrderId]);
 
   const fetchOrders = async () => {
     const fetchedOrders = await getOrders();
