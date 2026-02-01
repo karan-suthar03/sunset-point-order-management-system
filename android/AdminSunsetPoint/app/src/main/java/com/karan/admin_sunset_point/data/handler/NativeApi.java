@@ -286,6 +286,39 @@ public class NativeApi {
     }
 
     @JavascriptInterface
+    public void getDishPerformanceByDateRange(String requestId, String start, String end, String type, String limit_s){
+        executor.execute(() -> {
+            String result = "";
+            try{
+                DateRange dateRange = new DateRange(start, end);
+                int limit = Integer.parseInt(limit_s);
+                List<DishPerformance> dishPerformances = Handler.getInstance().getDishPerformance(dateRange.start,dateRange.end,type,limit);
+                JSONArray dishPerformanceData = new JSONArray();
+
+                for (DishPerformance d : dishPerformances) {
+                    JSONObject obj = new JSONObject();
+                    obj.put("id", d.id);
+                    obj.put("name", d.name);
+                    obj.put("category", d.category);
+                    obj.put("sales", d.sales);
+                    obj.put("revenue", d.revenue);
+                    dishPerformanceData.put(obj);
+                }
+
+                result = dishPerformanceData.toString();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            String js = "window.__nativeResolve(" +
+                    JSONObject.quote(requestId) + "," +
+                    JSONObject.quote(result) +
+                    ");";
+
+            webView.post(()->webView.evaluateJavascript(js,null));
+        });
+    }
+
+    @JavascriptInterface
     public void getOrdersAdmin(String requestId, String params) {
         executor.execute(() -> {
             String result = "";
