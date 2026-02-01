@@ -24,9 +24,6 @@ function OrderItemPopup({
         <p className="text-xs text-gray-600 mt-1">
           ₹{(item.price / 100).toFixed(2)} each
         </p>
-        <p className="text-sm font-semibold text-blue-600 mt-1">
-          Subtotal: ₹{(item.price * item.quantity / 100).toFixed(2)}
-        </p>
       </div>
       
       <div className="flex items-center gap-2 shrink-0">
