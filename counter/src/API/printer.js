@@ -18,13 +18,14 @@ async function connect_a() {
     }))
 }
 
-async function printOrder_a(orderId) {
+async function printOrder_a(orderId, printType = 'KOT') {
     await (new Promise((resolve)=>{
         const id = crypto?.randomUUID ? crypto.randomUUID() : uuid();
         window.__nativePromises[id] = resolve;
         window.PrinterNativeApi.printOrder(
             id,
-            orderId
+            orderId,
+            printType
         );
     }));
 }

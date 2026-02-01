@@ -7,10 +7,11 @@ import {
   Printer,
   AlertCircle,
   Loader2, // Imported Loader
+  ChevronDown,
 } from "lucide-react";
 import OrderItemsList from "./OrderItemsList";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { printOrder } from "../API/printer";
 
 function OrderCard({
@@ -28,6 +29,8 @@ function OrderCard({
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isPaymentLoading, setIsPaymentLoading] = useState(false);
+  const [showPrintMenu, setShowPrintMenu] = useState(false);
+  const printMenuRef = useRef(null);
 
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0);
   const isClosed = order.status === "CLOSED";
@@ -38,9 +41,29 @@ function OrderCard({
 
   // --- Handlers ---
 
-  const handleOrderPrint = async () => {
-    printOrder(order.id);
+  const handlePrintKOT = async () => {
+    printOrder(order.id, 'KOT');
+    setShowPrintMenu(false);
   };
+
+  const handlePrintCustomerReceipt = async () => {
+    printOrder(order.id, 'CUSTOMER_RECEIPT');
+    setShowPrintMenu(false);
+  };
+
+  // Close print menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (printMenuRef.current && !printMenuRef.current.contains(event.target)) {
+        setShowPrintMenu(false);
+      }
+    };
+
+    if (showPrintMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showPrintMenu]);
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -91,14 +114,43 @@ function OrderCard({
         </div>
 
         {/* Top Actions (Print) */}
-        <button
-          className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-          title="Print Receipt"
-          onClick={handleOrderPrint}
-          disabled={isBusy}
-        >
-          <Printer size={20} />
-        </button>
+        <div className="relative" ref={printMenuRef}>
+          <button
+            className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+            title="Print Options"
+            onClick={() => setShowPrintMenu(!showPrintMenu)}
+            disabled={isBusy}
+          >
+            <Printer size={20} />
+            <ChevronDown size={16} className={`transition-transform ${showPrintMenu ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {/* Print Dropdown Menu */}
+          {showPrintMenu && (
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+              <button
+                onClick={handlePrintKOT}
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 cursor-pointer border-b border-gray-100"
+              >
+                <Printer size={18} className="text-gray-600" />
+                <div>
+                  <div className="font-semibold text-gray-900">Print KOT</div>
+                  <div className="text-xs text-gray-500">Kitchen Order Ticket</div>
+                </div>
+              </button>
+              <button
+                onClick={handlePrintCustomerReceipt}
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 cursor-pointer"
+              >
+                <Receipt size={18} className="text-gray-600" />
+                <div>
+                  <div className="font-semibold text-gray-900">Print Customer Receipt</div>
+                  <div className="text-xs text-gray-500">Payment receipt with details</div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* --- Scrollable Content: Items List --- */}
