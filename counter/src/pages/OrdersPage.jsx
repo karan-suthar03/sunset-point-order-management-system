@@ -459,7 +459,7 @@ function OrdersPage() {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
                         <span className={`text-sm font-bold ${textMainColor}`}>
-                          #{order.tag}
+                          #{order.tag || order.id}
                         </span>
                         {order.status === "CLOSED" && (
                           <span
