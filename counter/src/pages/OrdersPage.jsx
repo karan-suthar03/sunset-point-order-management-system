@@ -120,27 +120,32 @@ function OrdersPage() {
   });
 
   const visibleOrders = useMemo(() => {
-    return filteredOrders;
-  }, [filteredOrders]);
+    // Sort orders based on filter status
+    const sorted = [...filteredOrders];
+    
+    if (filterStatus === "closed" || filterStatus === "all") {
+      // For closed and all: oldest on top (ascending by ID)
+      sorted.sort((a, b) => a.id - b.id);
+    }
+    
+    return sorted;
+  }, [filteredOrders, filterStatus]);
 
   // --- Handlers ---
   const handleCreateOrder = () => setShowOrderPopup(true);
 
-  const handleConfirmOrderCreation = () => {
-    fetchOrders();
+  const handleConfirmOrderCreation = async () => {
+    const fetchedOrders = await getOrders();
+    setOrders(fetchedOrders);
     setShowOrderPopup(false);
-  };
-
-  const handleUpdateQuantity = (itemId, newQuantity) => {
-    if (newQuantity < 1) return;
-    setOrders((prev) =>
-      prev.map((order) => ({
-        ...order,
-        items: order.items.map((item) =>
-          item.id === itemId ? { ...item, quantity: newQuantity } : item,
-        ),
-      })),
-    );
+    
+    // Select the most recently created order (highest ID)
+    if (fetchedOrders.length > 0) {
+      const mostRecentOrder = fetchedOrders.reduce((max, order) => 
+        order.id > max.id ? order : max
+      , fetchedOrders[0]);
+      setSelectedOrderId(mostRecentOrder.id);
+    }
   };
 
   const handleRemoveItem = (itemId) => {
