@@ -94,11 +94,6 @@ function OrderPopup({
   }
 
   function onOrderConfirm(){
-    if (!order.tag || order.tag.trim() === '') {
-      setTagError('Table/Tag name is required');
-      return;
-    }
-    
     setTagError('');
     setIsSubmitting(true);
 
@@ -116,9 +111,6 @@ function OrderPopup({
   function handleTagChange(e) {
     const value = e.target.value;
     setOrder({ ...order, tag: value });
-    if (value.trim() !== '') {
-      setTagError('');
-    }
   }
 
   return (
@@ -248,7 +240,7 @@ function OrderPopup({
                 value={order.tag}
                 onChange={handleTagChange}
                 disabled={isSubmitting}
-                placeholder="Customer / Table Name"
+                placeholder="Customer / Table Name (Optional)"
                 className={`
                   w-full px-4 py-3 bg-gray-50 border-2 rounded-xl text-lg font-bold text-gray-800 placeholder:font-normal placeholder:text-gray-400
                   focus:outline-none focus:bg-white transition-all
