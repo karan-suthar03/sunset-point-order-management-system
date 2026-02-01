@@ -120,12 +120,11 @@ async function closeOrder(orderId) {
       [orderId],
     );
 
-    // 2. Close the order and mark payment done
+    // 2. Close the order (payment status remains unchanged)
     const result = await client.query(
       `
       UPDATE orders
-      SET order_status = 'CLOSED',
-          is_payment_done = true
+      SET order_status = 'CLOSED'
       WHERE order_id = $1
       RETURNING *
       `,

@@ -34,6 +34,10 @@ function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState("active");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [autoPayEnabled, setAutoPayEnabled] = useState(() => {
+    const saved = localStorage.getItem('autoPayEnabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
   // --- Timer State ---
   const [currentTime, setCurrentTime] = useState(dayjs());
@@ -44,6 +48,11 @@ function OrdersPage() {
     orderId: null,
     callBack: null,
   });
+
+  // --- Save autopay preference ---
+  useEffect(() => {
+    localStorage.setItem('autoPayEnabled', JSON.stringify(autoPayEnabled));
+  }, [autoPayEnabled]);
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -224,6 +233,15 @@ function OrdersPage() {
       (async () => {
         try {
           await closeOrder(orderId);
+          
+          // Auto-pay if enabled and order is not already paid
+          if (autoPayEnabled) {
+            const order = orders.find(o => o.id === orderId);
+            if (order && !order.paymentDone) {
+              await toggleOrderPayment(orderId);
+            }
+          }
+          
           fetchOrders();
           setConfirmDialog({
             show: false,
@@ -300,10 +318,30 @@ function OrdersPage() {
 
           {/* Search Header */}
           <div className="px-5 py-4 border-b border-gray-100 bg-white z-10">
-            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <ReceiptIndianRupeeIcon size={18} className="text-blue-600" />
-              Orders List
-            </h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <ReceiptIndianRupeeIcon size={18} className="text-blue-600" />
+                Orders List
+              </h2>
+              <button
+                onClick={() => setAutoPayEnabled(!autoPayEnabled)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border font-semibold text-xs transition-all cursor-pointer ${
+                  autoPayEnabled
+                    ? 'bg-green-50 border-green-400 text-green-700 hover:bg-green-100'
+                    : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+                }`}
+                title={autoPayEnabled ? 'Auto-pay enabled: Orders will be marked as paid when closed' : 'Auto-pay disabled: Manually mark orders as paid'}
+              >
+                <div className={`w-8 h-4 rounded-full relative transition-all ${
+                  autoPayEnabled ? 'bg-green-500' : 'bg-gray-400'
+                }`}>
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${
+                    autoPayEnabled ? 'right-0.5' : 'left-0.5'
+                  }`} />
+                </div>
+                <CreditCard size={14} />
+              </button>
+            </div>
             <div className="relative mb-3 group">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"
