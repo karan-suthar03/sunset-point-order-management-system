@@ -1,12 +1,14 @@
 package com.karan.sunset_point.data.handler;
 
 import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import com.dantsu.escposprinter.EscPosPrinter;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
+import com.karan.sunset_point.MainActivity;
 import com.karan.sunset_point.OnPrinterConnected;
 import com.karan.sunset_point.PrinterManager;
 import com.karan.sunset_point.data.Responses.OrderItemResponse;
@@ -31,6 +33,83 @@ public class PrinterNativeApi {
     }
 
     @JavascriptInterface
+    public void getStatus(String requestId) {
+        executor.execute(() -> {
+            try {
+                // Get Bluetooth state
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                boolean bluetoothEnabled = bluetoothAdapter != null && bluetoothAdapter.isEnabled();
+                
+                // Get printer connection state
+                boolean printerConnected = PrinterManager.isConnected();
+                String printerName = PrinterManager.getConnectedPrinterName();
+                
+                // Build response
+                JSONObject obj = new JSONObject();
+                try {
+                    obj.put("bluetoothEnabled", bluetoothEnabled);
+                    obj.put("printerConnected", printerConnected);
+                    if (printerName != null) {
+                        obj.put("printerName", printerName);
+                    }
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+                
+                String js = "window.__nativeResolve(" +
+                        JSONObject.quote(requestId) + "," +
+                        JSONObject.quote(obj.toString()) +
+                        ");";
+                webView.post(() -> webView.evaluateJavascript(js, null));
+            } catch (Exception e) {
+                String js = "window.__nativeResolve(" +
+                        JSONObject.quote(requestId) +
+                        ");";
+                webView.post(() -> webView.evaluateJavascript(js, null));
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @JavascriptInterface
+    public void checkConnection(String requestId) {
+        executor.execute(() -> {
+            try {
+                boolean isConnected = PrinterManager.isConnected();
+                String printerName = PrinterManager.getConnectedPrinterName();
+                
+                // If we think we're connected but the connection is actually dead, reset it
+                if (!isConnected && printerName != null) {
+                    PrinterManager.resetConnection();
+                    MainActivity.notifyPrinterState(false, null);
+                }
+                
+                JSONObject obj = new JSONObject();
+                try {
+                    obj.put("connected", isConnected);
+                    if (printerName != null) {
+                        obj.put("printerName", printerName);
+                    }
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+                
+                String js = "window.__nativeResolve(" +
+                        JSONObject.quote(requestId) + "," +
+                        JSONObject.quote(obj.toString()) +
+                        ");";
+                webView.post(() -> webView.evaluateJavascript(js, null));
+            } catch (Exception e) {
+                String js = "window.__nativeResolve(" +
+                        JSONObject.quote(requestId) +
+                        ");";
+                webView.post(() -> webView.evaluateJavascript(js, null));
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @JavascriptInterface
     public void connectPrinter(String requestId){
         executor.execute(() -> {
             try {
@@ -39,9 +118,15 @@ public class PrinterNativeApi {
                     JSONObject obj = new JSONObject();
                     try {
                         obj.put("name",deviceName);
+                        obj.put("connected", true);
                     } catch (JSONException e) {
                         throw new RuntimeException(e);
                     }
+                    
+                    // Notify frontend of successful connection
+                    String eventJs = String.format("window.__onPrinterStateChanged && window.__onPrinterStateChanged(true, \"%s\");", deviceName);
+                    webView.post(() -> webView.evaluateJavascript(eventJs, null));
+                    
                     String js = "window.__nativeResolve(" +
                             JSONObject.quote(requestId) + "," +
                             JSONObject.quote(obj.toString()) +

@@ -3,7 +3,10 @@ package com.karan.sunset_point;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,6 +23,9 @@ import com.karan.sunset_point.data.handler.PrinterNativeApi;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static WebView webView;
+    private BroadcastReceiver bluetoothStateReceiver;
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         requestBluetoothPermission();
 
-        WebView webView = findViewById(R.id.mainWebView);
+        webView = findViewById(R.id.mainWebView);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -43,8 +49,70 @@ public class MainActivity extends AppCompatActivity {
         webView.addJavascriptInterface(new PrinterNativeApi(webView), "PrinterNativeApi");
         webView.setWebViewClient(new WebViewClient());
 
+        // Register Bluetooth state receiver
+        registerBluetoothStateReceiver();
+
         // Load React build
         webView.loadUrl("http://192.168.31.55:5174/");
+        
+        // Send initial states after a short delay to ensure WebView is ready
+        webView.postDelayed(() -> {
+            sendInitialStates();
+        }, 1000);
+    }
+
+    private void registerBluetoothStateReceiver() {
+        bluetoothStateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+                if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                    final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                    
+                    switch (state) {
+                        case BluetoothAdapter.STATE_OFF:
+                            notifyBluetoothState(false);
+                            PrinterManager.resetConnection();
+                            notifyPrinterState(false, null);
+                            break;
+                        case BluetoothAdapter.STATE_ON:
+                            notifyBluetoothState(true);
+                            break;
+                    }
+                }
+            }
+        };
+        
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(bluetoothStateReceiver, filter);
+    }
+
+    private void notifyBluetoothState(boolean enabled) {
+        if (webView != null) {
+            String js = String.format("window.__onBluetoothStateChanged && window.__onBluetoothStateChanged(%s);", enabled);
+            webView.post(() -> webView.evaluateJavascript(js, null));
+        }
+    }
+
+    public static void notifyPrinterState(boolean connected, String printerName) {
+        if (webView != null) {
+            String nameStr = printerName != null ? "\"" + printerName + "\"" : "null";
+            String js = String.format("window.__onPrinterStateChanged && window.__onPrinterStateChanged(%s, %s);", connected, nameStr);
+            webView.post(() -> webView.evaluateJavascript(js, null));
+        }
+    }
+    
+    private void sendInitialStates() {
+        // Send initial Bluetooth state
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter != null) {
+            notifyBluetoothState(bluetoothAdapter.isEnabled());
+        }
+        
+        // Send initial printer state
+        boolean printerConnected = PrinterManager.isConnected();
+        String printerName = PrinterManager.getConnectedPrinterName();
+        notifyPrinterState(printerConnected, printerName);
     }
 
     private static final int BLUETOOTH_PERMISSION_CODE = 1001;

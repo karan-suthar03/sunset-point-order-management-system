@@ -5,41 +5,115 @@ import {
   Printer, 
   Loader2, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Bluetooth,
+  BluetoothOff
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { connectPrinter } from '../API/printer';
+import { connectPrinter, getStatus, checkConnection } from '../API/printer';
+import { usePrinterState } from '../hooks/usePrinterState';
 
 function Header() {
   const [time, setTime] = useState(new Date());
-  const [printerStatus, setPrinterStatus] = useState('connecting');
-  const [printerName, setPrinterName] = useState(null);
+  const { isBluetoothEnabled, isPrinterConnected, printerName, bluetoothState } = usePrinterState();
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
+  // Request initial status on mount
   useEffect(() => {
-    (async () => {
+    const fetchInitialStatus = async () => {
       try {
-        const result = await connectPrinter();
-        if (result){
-          setPrinterName(result.name || 'Unknown Printer');
-          setPrinterStatus('connected');
-        }else{
-          setPrinterStatus('disconnected');
+        const status = await getStatus();
+        console.log('Initial status:', status);
+        // Trigger the state callbacks
+        if (status && typeof window.__onBluetoothStateChanged === 'function') {
+          window.__onBluetoothStateChanged(status.bluetoothEnabled);
         }
-        // if (result && result.name) {
-        //   setPrinterName(result.name);
-        //   setPrinterStatus('connected');
-        // } else {
-        //   setPrinterStatus('disconnected');
-        // }
+        if (status && typeof window.__onPrinterStateChanged === 'function') {
+          window.__onPrinterStateChanged(status.printerConnected, status.printerName || null);
+        }
+        
+        // Auto-connect if Bluetooth is enabled and printer not connected
+        if (status && status.bluetoothEnabled && !status.printerConnected) {
+          console.log('Auto-connecting to printer...');
+          setIsConnecting(true);
+          try {
+            await connectPrinter();
+          } catch (error) {
+            console.log('Auto-connect failed:', error);
+          } finally {
+            setIsConnecting(false);
+          }
+        }
       } catch (error) {
-        setPrinterStatus('disconnected');
+        console.error('Failed to get initial status:', error);
       }
-    })();
+    };
+    
+    // Wait a bit for WebView to be ready
+    setTimeout(fetchInitialStatus, 500);
+  }, []);
+
+  const handleRetryConnect = async () => {
+    if (isConnecting) return;
+    
+    setIsConnecting(true);
+    try {
+      await connectPrinter();
+    } catch (error) {
+      console.error('Retry connect failed:', error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Periodic health check for printer connection
+  useEffect(() => {
+    const checkPrinterHealth = async () => {
+      try {
+        const status = await checkConnection();
+        if (status && !status.connected && isPrinterConnected) {
+          // Printer was connected but is now disconnected
+          console.log('Printer disconnected detected');
+          if (typeof window.__onPrinterStateChanged === 'function') {
+            window.__onPrinterStateChanged(false, null);
+          }
+        }
+      } catch (error) {
+        console.error('Health check failed:', error);
+      }
+    };
+
+    // Check every 5 seconds if we think a printer is connected
+    const interval = setInterval(() => {
+      if (isPrinterConnected) {
+        checkPrinterHealth();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isPrinterConnected]);
+
+  // Auto-connect to printer on mount if Bluetooth is enabled and no printer connected
+  useEffect(() => {
+    const attemptConnect = async () => {
+      // Wait a bit for initial state to be received
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (isBluetoothEnabled && !isPrinterConnected) {
+        try {
+          await connectPrinter();
+        } catch (error) {
+          console.log('Auto-connect failed:', error);
+        }
+      }
+    };
+    
+    attemptConnect();
   }, []);
 
   const formattedDate = time.toLocaleDateString('en-US', { 
@@ -53,39 +127,59 @@ function Header() {
     minute: '2-digit' 
   });
 
-  // Helper to render printer UI based on status
+  // Helper to render printer UI based on real-time status
   const renderPrinterStatus = () => {
-    switch (printerStatus) {
-      case 'connecting':
-        return (
-          <div className="flex items-center gap-2 bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-full border border-yellow-200 transition-all">
-            <Loader2 size={16} className="animate-spin" />
-            <span className="text-xs font-semibold whitespace-nowrap">Connecting...</span>
-          </div>
-        );
-      case 'connected':
-        return (
-          <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200 transition-all group cursor-default">
-            <Printer size={16} />
-            <div className="flex flex-col leading-none">
-              <span className="text-[10px] text-green-600 font-medium uppercase tracking-wider">Online</span>
-              <span className="text-xs font-bold truncate max-w-[80px] sm:max-w-none">
-                {printerName}
-              </span>
-            </div>
-            <CheckCircle2 size={14} className="ml-1" />
-          </div>
-        );
-      case 'disconnected':
-      default:
-        return (
-          <div className="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-1.5 rounded-full border border-red-200 transition-all">
-            <Printer size={16} />
-            <span className="text-xs font-semibold whitespace-nowrap">No Printer</span>
-            <AlertCircle size={14} />
-          </div>
-        );
+    // Show Bluetooth disabled state first
+    if (bluetoothState.enabled === false) {
+      return (
+        <div className="flex items-center gap-2 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-full border border-orange-200 transition-all">
+          <BluetoothOff size={16} />
+          <span className="text-xs font-semibold whitespace-nowrap">Bluetooth Off</span>
+          <AlertCircle size={14} />
+        </div>
+      );
     }
+
+    // Show checking/connecting state
+    if (bluetoothState.enabled === null || isConnecting) {
+      return (
+        <div className="flex items-center gap-2 bg-gray-50 text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 transition-all">
+          <Loader2 size={16} className="animate-spin" />
+          <span className="text-xs font-semibold whitespace-nowrap">
+            {isConnecting ? 'Connecting...' : 'Checking...'}
+          </span>
+        </div>
+      );
+    }
+
+    // Bluetooth is on, check printer connection
+    if (isPrinterConnected && printerName) {
+      return (
+        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200 transition-all group cursor-default">
+          <Printer size={16} />
+          <div className="flex flex-col leading-none">
+            <span className="text-[10px] text-green-600 font-medium uppercase tracking-wider">Online</span>
+            <span className="text-xs font-bold truncate max-w-[80px] sm:max-w-none">
+              {printerName}
+            </span>
+          </div>
+          <CheckCircle2 size={14} className="ml-1" />
+        </div>
+      );
+    }
+
+    // Bluetooth is on but no printer connected - show retry button
+    return (
+      <button
+        onClick={handleRetryConnect}
+        disabled={isConnecting}
+        className="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-1.5 rounded-full border border-red-200 transition-all hover:bg-red-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Printer size={16} />
+        <span className="text-xs font-semibold whitespace-nowrap">Retry Connect</span>
+        <AlertCircle size={14} />
+      </button>
+    );
   };
 
   return (
@@ -111,14 +205,18 @@ function Header() {
           <div className="hidden md:block">
              {renderPrinterStatus()}
           </div>
-          {/* Mobile Icon Only (Optional, if you want it on small screens) */}
+          {/* Mobile Icon Only */}
           <div className="md:hidden">
-            {printerStatus === 'connected' ? (
+            {bluetoothState.enabled === false ? (
+              <BluetoothOff size={20} className="text-orange-600" />
+            ) : bluetoothState.enabled === null || isConnecting ? (
+              <Loader2 size={20} className="animate-spin text-gray-600" />
+            ) : isPrinterConnected ? (
               <Printer size={20} className="text-green-600" />
-            ) : printerStatus === 'connecting' ? (
-              <Loader2 size={20} className="animate-spin text-yellow-600" />
             ) : (
-              <AlertCircle size={20} className="text-red-500" />
+              <button onClick={handleRetryConnect} disabled={isConnecting}>
+                <AlertCircle size={20} className="text-red-500" />
+              </button>
             )}
           </div>
 

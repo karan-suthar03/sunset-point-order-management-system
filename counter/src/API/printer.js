@@ -1,4 +1,6 @@
 import apiClient from ".";
+import { onBluetoothStateChange, onPrinterStateChange, getBluetoothState, getPrinterState } from ".";
+
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = Math.random() * 16 | 0;
@@ -27,5 +29,30 @@ async function printOrder_a(orderId) {
     }));
 }
 
+async function getStatus_a() {
+    return await (new Promise((resolve)=>{
+        const id = crypto?.randomUUID ? crypto.randomUUID() : uuid();
+        window.__nativePromises[id] = resolve;
+        window.PrinterNativeApi.getStatus(id);
+    }));
+}
 
-export { connect_a as connectPrinter, printOrder_a as printOrder };
+async function checkConnection_a() {
+    return await (new Promise((resolve)=>{
+        const id = crypto?.randomUUID ? crypto.randomUUID() : uuid();
+        window.__nativePromises[id] = resolve;
+        window.PrinterNativeApi.checkConnection(id);
+    }));
+}
+
+
+export { 
+    connect_a as connectPrinter, 
+    printOrder_a as printOrder,
+    getStatus_a as getStatus,
+    checkConnection_a as checkConnection,
+    onBluetoothStateChange,
+    onPrinterStateChange,
+    getBluetoothState,
+    getPrinterState
+};

@@ -18,8 +18,49 @@ public class PrinterManager {
 
     private static BluetoothConnection connection;
     private static EscPosPrinter printer;
+    private static String connectedPrinterName;
 
     private static Boolean inititalizing = false;
+
+    public static String getConnectedPrinterName() {
+        return connectedPrinterName;
+    }
+
+    public static boolean isConnected() {
+        if (printer == null || connection == null) {
+            return false;
+        }
+        
+        // Check if the Bluetooth device is still connected
+        try {
+            if (ActivityCompat.checkSelfPermission(App.context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                if (adapter == null || !adapter.isEnabled()) {
+                    return false;
+                }
+                // Check if device is still paired
+                if (connection.getDevice() == null) {
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    public static void resetConnection() {
+        try {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        } catch (Exception ignored) {}
+        
+        printer = null;
+        connection = null;
+        connectedPrinterName = null;
+    }
 
     public static synchronized void connect(OnPrinterConnected callback) throws Exception {
 
@@ -71,6 +112,8 @@ public class PrinterManager {
 
         if (callback != null) {
             String name = connection.getDevice().getName();
+            connectedPrinterName = name;
+            MainActivity.notifyPrinterState(true, name);
             callback.onConnected(name, connection, printer);
         }
     }
@@ -90,6 +133,7 @@ public class PrinterManager {
                             pr.printFormattedText(text);
                         } catch (Exception e) {
                             e.printStackTrace();
+                            throw new RuntimeException(e);
                         }
                     });
 
@@ -101,17 +145,25 @@ public class PrinterManager {
 
                     printer = null;
                     connection = null;
+                    connectedPrinterName = null;
+                    MainActivity.notifyPrinterState(false, null);
 
-                    connect((name, conn, pr) -> {
-                        try {
-                            pr.printFormattedText(text);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    });
+                    // Only retry if it's not a disconnection error
+                    if (!(firstFail.getCause() instanceof java.io.IOException)) {
+                        connect((name, conn, pr) -> {
+                            try {
+                                pr.printFormattedText(text);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    } else {
+                        Log.e("PrinterManager", "Skipping retry - printer disconnected");
+                    }
                 }
 
             } catch (Exception e) {
+                MainActivity.notifyPrinterState(false, null);
                 e.printStackTrace();
             }
 
