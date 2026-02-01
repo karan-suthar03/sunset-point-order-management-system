@@ -36,8 +36,7 @@ public interface OrderDao {
     }
 
     @Query("        UPDATE orders\n" +
-            "        SET order_status = 'CLOSED',\n" +
-            "            is_payment_done = 1\n" +
+            "        SET order_status = 'CLOSED'\n" +
             "        WHERE order_id = :orderId")
     void closeOrder(int orderId);
 

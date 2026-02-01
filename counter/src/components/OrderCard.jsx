@@ -223,7 +223,7 @@ function OrderCard({
             onClick={() => {
               onTogglePayment(order.id);
             }}
-            disabled={isClosed || isBusy}
+            disabled={isBusy}
             className={`
             flex items-center gap-3 cursor-pointer px-5 py-3 rounded-xl border transition-all w-full lg:w-auto shadow-sm group relative overflow-hidden
             disabled:opacity-70 disabled:cursor-not-allowed
