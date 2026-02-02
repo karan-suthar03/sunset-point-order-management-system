@@ -26,6 +26,7 @@ import com.karan.admin_sunset_point.data.entity.OrderSizeDistribution;
 import com.karan.admin_sunset_point.data.entity.OrderSummary;
 import com.karan.admin_sunset_point.data.entity.OrderWithItems;
 import com.karan.admin_sunset_point.data.entity.SalesTrend;
+import com.karan.admin_sunset_point.data.Responses.PaginatedOrdersResponse;
 import com.karan.admin_sunset_point.data.handler.DateRangeUtil.DateRange;
 
 import java.io.File;
@@ -351,10 +352,10 @@ public class NativeApi {
                 String sortKey        = sortConfig != null ? sortConfig.optString("key", "createdAt") : "createdAt";
                 String sortDirection  = sortConfig != null ? sortConfig.optString("direction", "desc") : "desc";
 
-                List<OrderWithItems> orderWithItems = Handler.getInstance().getOrdersAdmin(searchQuery, startDate, endDate, sortKey, sortDirection, page);
+                PaginatedOrdersResponse response = Handler.getInstance().getOrdersAdmin(searchQuery, startDate, endDate, sortKey, sortDirection, page);
 
                 JSONArray orders = new JSONArray();
-                for (OrderWithItems orderWithItem : orderWithItems) {
+                for (OrderWithItems orderWithItem : response.orders) {
                     Order order = orderWithItem.order;
                     JSONObject orderObj = new JSONObject();
 
@@ -379,7 +380,10 @@ public class NativeApi {
                     orders.put(orderObj);
                 }
 
-                result = orders.toString();
+                JSONObject finalResponse = new JSONObject();
+                finalResponse.put("orders", orders);
+                finalResponse.put("totalCount", response.totalCount);
+                result = finalResponse.toString();
 
             } catch (Exception e) {
                 e.printStackTrace();

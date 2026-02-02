@@ -9,6 +9,7 @@ import com.karan.admin_sunset_point.data.entity.Order;
 import com.karan.admin_sunset_point.data.entity.OrderAnalysis;
 import com.karan.admin_sunset_point.data.entity.OrderItem;
 import com.karan.admin_sunset_point.data.entity.OrderWithItems;
+import com.karan.admin_sunset_point.data.Responses.PaginatedOrdersResponse;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -57,19 +58,26 @@ public class Handler {
         }
     }
 
-    public List<OrderWithItems> getOrdersAdmin(String searchQuery, String startDate, String endDate, String sortKey, String sortDirection, int page) {
+    public PaginatedOrdersResponse getOrdersAdmin(String searchQuery, String startDate, String endDate, String sortKey, String sortDirection, int page) {
         searchQuery = searchQuery == null ? "" : searchQuery;
         page = page <= 0 ? 1 : page;
 
+        // Get total count
+        int totalCount = db.orderDao().getOrderCount(searchQuery, startDate, endDate);
+
+        // Get paginated orders
+        List<OrderWithItems> orders;
         if ("order_total".equals(sortKey)) {
-            return "asc".equals(sortDirection)
+            orders = "asc".equals(sortDirection)
                     ? db.orderDao().getOrdersByTotalAsc(searchQuery, startDate, endDate, page)
                     : db.orderDao().getOrdersByTotalDesc(searchQuery, startDate, endDate, page);
         } else {
-            return "asc".equals(sortDirection)
+            orders = "asc".equals(sortDirection)
                     ? db.orderDao().getOrdersByCreatedAsc(searchQuery, startDate, endDate, page)
                     : db.orderDao().getOrdersByCreatedDesc(searchQuery, startDate, endDate, page);
         }
+
+        return new PaginatedOrdersResponse(orders, totalCount);
     }
 
     public OrderWithItems getOrderById(int orderId) {

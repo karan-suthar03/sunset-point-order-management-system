@@ -391,4 +391,18 @@ public interface OrderDao {
             "AND DATE(created_at) = DATE('now')")
     int getTodaysTotalSales();
 
+    @Query("\n" +
+            "    SELECT COUNT(*)\n" +
+            "    FROM orders o\n" +
+            "    WHERE\n" +
+            "        o.order_status = 'CLOSED'\n" +
+            "        AND (:search = '' OR o.order_tag LIKE '%' || :search || '%')\n" +
+            "        AND (:start IS NULL OR o.created_at >= datetime(:start, 'start of day'))\n" +
+            "        AND (:end   IS NULL OR o.created_at <  datetime(:end, '+1 day'))")
+    int getOrderCount(
+            String search,
+            String start,
+            String end
+    );
+
 }

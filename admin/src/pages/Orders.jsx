@@ -17,6 +17,7 @@ export default function OrdersPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   
   // --- FILTERS STATE ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,10 +44,23 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       
-      let data = await getOrders({searchQuery, dateRange, sortConfig, currentPage});
-      console.log("API Orders Data:", data);
+      let response = await getOrders({searchQuery, dateRange, sortConfig, currentPage});
+      console.log("API Orders Data:", response);
 
-      // data = await fetchOrdersData();
+      // Handle both array response (web) and object response (android)
+      let data, count;
+      if (Array.isArray(response)) {
+        // Web backend response - just array of orders (no pagination support yet)
+        data = response;
+        count = response.length;
+      } else if (response.orders) {
+        // Android response - object with orders array and totalCount
+        data = response.orders;
+        count = response.totalCount || 0;
+      } else {
+        data = [];
+        count = 0;
+      }
 
       data = data.map(order => ({
         ...order,
@@ -59,6 +73,7 @@ export default function OrdersPage() {
         }))
       }));
       setOrders(data);
+      setTotalCount(count);
     } catch (err) {
       console.error("Failed to load orders", err);
     } finally {
@@ -79,8 +94,8 @@ export default function OrdersPage() {
     setDateRange(prev => ({ ...prev, [field]: value }));
   };
 
-  // Backend handles all filtering, sorting, and pagination
-  const totalPages = Math.ceil(orders.length / itemsPerPage);
+  // Calculate total pages based on totalCount from backend
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   // --- FORMATTERS ---
   const formatDate = (dateStr) => {
@@ -246,7 +261,7 @@ export default function OrdersPage() {
           {!loading && orders.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
               <div className="text-xs text-slate-500 font-medium">
-                Showing <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-slate-700">{Math.min(currentPage * itemsPerPage, orders.length)}</span> of <span className="font-bold text-slate-700">{orders.length}</span> results
+                Showing <span className="font-bold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-slate-700">{Math.min(currentPage * itemsPerPage, totalCount)}</span> of <span className="font-bold text-slate-700">{totalCount}</span> results
               </div>
               
               <div className="flex gap-2">

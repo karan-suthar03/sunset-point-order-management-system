@@ -61,9 +61,7 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl("http://10.254.173.21:5174/");
         
         // Send initial states after a short delay to ensure WebView is ready
-        webView.postDelayed(() -> {
-            sendInitialStates();
-        }, 1000);
+        webView.postDelayed(() -> sendInitialStates(), 1000);
 
         // Setup back press handler using OnBackPressedDispatcher
         setupBackPressHandler();
