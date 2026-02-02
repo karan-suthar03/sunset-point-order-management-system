@@ -29,4 +29,7 @@ public interface OrderItemDao {
 
     @Query("UPDATE order_items SET item_status = 'SERVED' WHERE order_id = :orderId")
     void setServed(int orderId);
+
+    @Query("SELECT * FROM order_items")
+    List<OrderItem> getAllOrderItems();
 }

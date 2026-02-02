@@ -5,7 +5,9 @@ import com.karan.admin_sunset_point.data.AppDatabase;
 import com.karan.admin_sunset_point.data.entity.CategoryPerformance;
 import com.karan.admin_sunset_point.data.entity.Dish;
 import com.karan.admin_sunset_point.data.entity.DishPerformance;
+import com.karan.admin_sunset_point.data.entity.Order;
 import com.karan.admin_sunset_point.data.entity.OrderAnalysis;
+import com.karan.admin_sunset_point.data.entity.OrderItem;
 import com.karan.admin_sunset_point.data.entity.OrderWithItems;
 
 import org.json.JSONArray;
@@ -140,5 +142,17 @@ public class Handler {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public List<Dish> getAllDishes() {
+        return db.dishDao().getAllDishes();
+    }
+
+    public List<Order> getAllOrders() {
+        return db.orderDao().getAllOrders();
+    }
+
+    public List<OrderItem> getAllOrderItems() {
+        return db.orderItemDao().getAllOrderItems();
     }
 }

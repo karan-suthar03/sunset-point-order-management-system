@@ -1,5 +1,8 @@
 package com.karan.admin_sunset_point.data.handler;
 
+import android.content.ContentResolver;
+import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -10,6 +13,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.karan.admin_sunset_point.App;
+import com.karan.admin_sunset_point.MainActivity;
 import com.karan.admin_sunset_point.data.entity.CategoryPerformance;
 import com.karan.admin_sunset_point.data.entity.Dish;
 import com.karan.admin_sunset_point.data.entity.DishPerformance;
@@ -23,10 +28,18 @@ import com.karan.admin_sunset_point.data.entity.OrderWithItems;
 import com.karan.admin_sunset_point.data.entity.SalesTrend;
 import com.karan.admin_sunset_point.data.handler.DateRangeUtil.DateRange;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.zip.GZIPOutputStream;
 
 public class NativeApi {
     private final Executor executor = Executors.newSingleThreadExecutor();
@@ -556,6 +569,131 @@ public class NativeApi {
             String js = "window.__nativeResolve(" +
                     JSONObject.quote(requestId) + "," +
                     JSONObject.quote(result) +
+                    ");";
+            webView.post(() -> webView.evaluateJavascript(js, null));
+        });
+    }
+
+    @JavascriptInterface
+    public void backupDatabase(String requestId) {
+        executor.execute(() -> {
+            try {
+                // Get all data from database
+                List<Dish> dishes = Handler.getInstance().getAllDishes();
+                List<Order> orders = Handler.getInstance().getAllOrders();
+                List<OrderItem> orderItems = Handler.getInstance().getAllOrderItems();
+
+                // Create backup JSON object
+                JSONObject backupData = new JSONObject();
+                backupData.put("backup_timestamp", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(new Date()));
+                backupData.put("database_version", 4);
+
+                // Add dishes
+                JSONArray dishesArray = new JSONArray();
+                for (Dish dish : dishes) {
+                    JSONObject dishObj = new JSONObject();
+                    dishObj.put("dish_id", dish.dish_id);
+                    dishObj.put("dish_name", dish.dish_name);
+                    dishObj.put("category", dish.category);
+                    dishObj.put("price", dish.price);
+                    dishesArray.put(dishObj);
+                }
+                backupData.put("dishes", dishesArray);
+
+                // Add orders
+                JSONArray ordersArray = new JSONArray();
+                for (Order order : orders) {
+                    JSONObject orderObj = new JSONObject();
+                    orderObj.put("order_id", order.order_id);
+                    orderObj.put("order_tag", order.order_tag);
+                    orderObj.put("is_payment_done", order.is_payment_done);
+                    orderObj.put("order_total", order.order_total);
+                    orderObj.put("order_status", order.order_status.toString());
+                    orderObj.put("created_at", order.created_at);
+                    ordersArray.put(orderObj);
+                }
+                backupData.put("orders", ordersArray);
+
+                // Add order items
+                JSONArray orderItemsArray = new JSONArray();
+                for (OrderItem item : orderItems) {
+                    JSONObject itemObj = new JSONObject();
+                    itemObj.put("order_item_id", item.order_item_id);
+                    itemObj.put("order_id", item.order_id);
+                    itemObj.put("dish_id", item.dish_id);
+                    itemObj.put("quantity", item.quantity);
+                    itemObj.put("dish_name_snapshot", item.dish_name_snapshot);
+                    itemObj.put("price_snapshot", item.price_snapshot);
+                    itemObj.put("item_status", item.item_status.toString());
+                    orderItemsArray.put(itemObj);
+                }
+                backupData.put("order_items", orderItemsArray);
+
+                // Launch file picker on the main thread
+                MainActivity activity = MainActivity.getInstance();
+                if (activity != null) {
+                    activity.runOnUiThread(() -> activity.launchBackupFilePicker(backupData.toString(), requestId));
+                } else {
+                    String js = "window.__nativeResolve(" +
+                            JSONObject.quote(requestId) + "," +
+                            "\"{\\\"success\\\":false,\\\"message\\\":\\\"Activity not available\\\"}\");";
+                    webView.post(() -> webView.evaluateJavascript(js, null));
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                String js = "window.__nativeResolve(" +
+                        JSONObject.quote(requestId) + "," +
+                        "\"{\\\"success\\\":false,\\\"message\\\":\\\"Backup failed: " + e.getMessage() + "\\\"}\");";
+                webView.post(() -> webView.evaluateJavascript(js, null));
+            }
+        });
+    }
+
+    public void writeBackupToUri(Uri uri, String backupDataString, String requestId) {
+        executor.execute(() -> {
+            String result = "";
+            try {
+                ContentResolver resolver = App.context.getContentResolver();
+                
+                try (OutputStream outputStream = resolver.openOutputStream(uri);
+                     GZIPOutputStream gzipOS = new GZIPOutputStream(outputStream)) {
+                    gzipOS.write(backupDataString.getBytes("UTF-8"));
+                    gzipOS.finish();
+                }
+
+                // Get file name from URI
+                String fileName = uri.getLastPathSegment();
+                if (fileName == null) {
+                    fileName = "backup.json.gz";
+                }
+
+                // Prepare success response
+                JSONObject resultObj = new JSONObject();
+                resultObj.put("success", true);
+                resultObj.put("message", "Backup created successfully");
+                resultObj.put("filename", fileName);
+                resultObj.put("path", uri.toString());
+                result = resultObj.toString();
+
+                Log.d("DatabaseBackup", "Backup created: " + uri.toString());
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                try {
+                    JSONObject errorObj = new JSONObject();
+                    errorObj.put("success", false);
+                    errorObj.put("message", "Backup failed: " + e.getMessage());
+                    result = errorObj.toString();
+                } catch (JSONException ex) {
+                    result = "{\"success\":false,\"message\":\"Backup failed\"}";
+                }
+            }
+
+            String finalResult = result;
+            String js = "window.__nativeResolve(" +
+                    JSONObject.quote(requestId) + "," +
+                    JSONObject.quote(finalResult) +
                     ");";
             webView.post(() -> webView.evaluateJavascript(js, null));
         });
