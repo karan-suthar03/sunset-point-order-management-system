@@ -83,8 +83,8 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient());
 
 
-        // Load React build
-        webView.loadUrl("http://10.254.173.21:5173/");
+        // Load React build from assets
+        webView.loadUrl("file:///android_asset/react/index.html");
 
         // Setup back press handler using OnBackPressedDispatcher
         setupBackPressHandler();

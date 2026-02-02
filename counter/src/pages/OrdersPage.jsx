@@ -26,6 +26,7 @@ import {
   Hourglass, // Added Hourglass for warning stage
 } from "lucide-react";
 import dayjs from "dayjs";
+import { printOrder } from "../API/printer.js";
 
 function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -154,6 +155,7 @@ function OrdersPage() {
         order.id > max.id ? order : max
       , fetchedOrders[0]);
       setSelectedOrderId(mostRecentOrder.id);
+      printOrder(mostRecentOrder.id, 'KOT');
     }
   };
 
