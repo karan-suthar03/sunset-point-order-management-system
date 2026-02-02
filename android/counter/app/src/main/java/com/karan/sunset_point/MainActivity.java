@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         registerBluetoothStateReceiver();
 
         // Load React build
-        webView.loadUrl("http://192.168.31.55:5174/");
+        webView.loadUrl("http://10.254.173.21:5174/");
         
         // Send initial states after a short delay to ensure WebView is ready
         webView.postDelayed(() -> {

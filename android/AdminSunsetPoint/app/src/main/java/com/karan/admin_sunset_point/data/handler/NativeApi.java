@@ -40,6 +40,8 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class NativeApi {
     private final Executor executor = Executors.newSingleThreadExecutor();
@@ -629,10 +631,52 @@ public class NativeApi {
                 }
                 backupData.put("order_items", orderItemsArray);
 
+                // Create CSV data
+                StringBuilder dishesCSV = new StringBuilder();
+                dishesCSV.append("dish_id,dish_name,category,price\n");
+                for (Dish dish : dishes) {
+                    dishesCSV.append(dish.dish_id).append(",")
+                            .append(escapeCsv(dish.dish_name)).append(",")
+                            .append(escapeCsv(dish.category)).append(",")
+                            .append(dish.price).append("\n");
+                }
+
+                StringBuilder ordersCSV = new StringBuilder();
+                ordersCSV.append("order_id,order_tag,is_payment_done,order_total,order_status,created_at\n");
+                for (Order order : orders) {
+                    ordersCSV.append(order.order_id).append(",")
+                            .append(escapeCsv(order.order_tag)).append(",")
+                            .append(order.is_payment_done).append(",")
+                            .append(order.order_total).append(",")
+                            .append(order.order_status.toString()).append(",")
+                            .append(order.created_at).append("\n");
+                }
+
+                StringBuilder orderItemsCSV = new StringBuilder();
+                orderItemsCSV.append("order_item_id,order_id,dish_id,quantity,dish_name_snapshot,price_snapshot,item_status\n");
+                for (OrderItem item : orderItems) {
+                    orderItemsCSV.append(item.order_item_id).append(",")
+                            .append(item.order_id).append(",")
+                            .append(item.dish_id).append(",")
+                            .append(item.quantity).append(",")
+                            .append(escapeCsv(item.dish_name_snapshot)).append(",")
+                            .append(item.price_snapshot).append(",")
+                            .append(item.item_status.toString()).append("\n");
+                }
+
+                // Package JSON, dishes CSV, orders CSV, and order_items CSV
+                String jsonData = backupData.toString();
+                String[] fileData = new String[] {
+                    jsonData,
+                    dishesCSV.toString(),
+                    ordersCSV.toString(),
+                    orderItemsCSV.toString()
+                };
+
                 // Launch file picker on the main thread
                 MainActivity activity = MainActivity.getInstance();
                 if (activity != null) {
-                    activity.runOnUiThread(() -> activity.launchBackupFilePicker(backupData.toString(), requestId));
+                    activity.runOnUiThread(() -> activity.launchBackupFilePicker(fileData, requestId));
                 } else {
                     String js = "window.__nativeResolve(" +
                             JSONObject.quote(requestId) + "," +
@@ -650,16 +694,41 @@ public class NativeApi {
         });
     }
 
-    public void writeBackupToUri(Uri uri, String backupDataString, String requestId) {
+    public void writeBackupToUri(Uri uri, String[] fileData, String requestId) {
         executor.execute(() -> {
             String result = "";
             try {
                 ContentResolver resolver = App.context.getContentResolver();
                 
+                // Create ZIP file with JSON and CSV files
                 try (OutputStream outputStream = resolver.openOutputStream(uri);
-                     GZIPOutputStream gzipOS = new GZIPOutputStream(outputStream)) {
-                    gzipOS.write(backupDataString.getBytes("UTF-8"));
-                    gzipOS.finish();
+                     ZipOutputStream zipOS = new ZipOutputStream(outputStream)) {
+                    
+                    // Add backup.json
+                    ZipEntry jsonEntry = new ZipEntry("backup.json");
+                    zipOS.putNextEntry(jsonEntry);
+                    zipOS.write(fileData[0].getBytes("UTF-8"));
+                    zipOS.closeEntry();
+                    
+                    // Add dishes.csv
+                    ZipEntry dishesEntry = new ZipEntry("dishes.csv");
+                    zipOS.putNextEntry(dishesEntry);
+                    zipOS.write(fileData[1].getBytes("UTF-8"));
+                    zipOS.closeEntry();
+                    
+                    // Add orders.csv
+                    ZipEntry ordersEntry = new ZipEntry("orders.csv");
+                    zipOS.putNextEntry(ordersEntry);
+                    zipOS.write(fileData[2].getBytes("UTF-8"));
+                    zipOS.closeEntry();
+                    
+                    // Add order_items.csv
+                    ZipEntry orderItemsEntry = new ZipEntry("order_items.csv");
+                    zipOS.putNextEntry(orderItemsEntry);
+                    zipOS.write(fileData[3].getBytes("UTF-8"));
+                    zipOS.closeEntry();
+                    
+                    zipOS.finish();
                 }
 
                 // Get file name from URI
@@ -697,6 +766,14 @@ public class NativeApi {
                     ");";
             webView.post(() -> webView.evaluateJavascript(js, null));
         });
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
 }

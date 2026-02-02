@@ -171,9 +171,9 @@ export default function OrderDetailPage() {
                         Payment
                      </div>
                      <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                        order.order_status === 'CLOSED' ? 'text-emerald-700 bg-emerald-100' : 'text-amber-700 bg-amber-100'
+                        order.is_payment_done === 1 ? 'text-emerald-700 bg-emerald-100' : 'text-amber-700 bg-amber-100'
                      }`}>
-                        {order.order_status === 'CLOSED' ? 'PAID' : 'PENDING'}
+                        {order.is_payment_done === 1 ? 'PAID' : 'PENDING'}
                      </span>
                   </div>
               </div>

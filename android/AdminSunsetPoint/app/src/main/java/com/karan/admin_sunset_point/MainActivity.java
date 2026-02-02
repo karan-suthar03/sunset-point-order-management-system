@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private OnBackPressedCallback backPressedCallback;
     private ActivityResultLauncher<Intent> createDocumentLauncher;
     private static MainActivity instance;
-    private String pendingBackupData;
+    private String[] pendingBackupData;
     private String pendingBackupRequestId;
 
     public static MainActivity getInstance() {
@@ -116,16 +116,16 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, backPressedCallback);
     }
 
-    public void launchBackupFilePicker(String backupData, String requestId) {
+    public void launchBackupFilePicker(String[] backupData, String requestId) {
         pendingBackupData = backupData;
         pendingBackupRequestId = requestId;
 
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String filename = "sunset_point_backup_" + timestamp + ".json.gz";
+        String filename = "sunset_point_backup_" + timestamp + ".zip";
 
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("application/gzip");
+        intent.setType("application/zip");
         intent.putExtra(Intent.EXTRA_TITLE, filename);
 
         createDocumentLauncher.launch(intent);
